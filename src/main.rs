@@ -1,3 +1,5 @@
+
+use syntax_analyzer::syn::yp_reader;
 fn main() {
-    println!("Hello, world!");
+    yp_reader::read_yalpar();
 }
