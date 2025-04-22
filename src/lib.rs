@@ -5,4 +5,5 @@ pub mod utility{
 pub mod syn{
     pub mod yp_reader;
     pub mod slr_automata;
+    pub mod first_follow;
 }
