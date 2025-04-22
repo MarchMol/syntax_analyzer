@@ -51,6 +51,7 @@ pub fn find_first(
         }
 
         firsts.insert(symbol.clone(), result.clone());
+
         result
     }
 
@@ -58,6 +59,11 @@ pub fn find_first(
         let mut visited = HashSet::new();
         compute_first(nt, &grammar, &terminales, &no_terminales, &mut firsts, &mut visited);
     }
+
+    // println!("\n== FIRST ==");
+    // for (nt, first_set) in &firsts {
+    //     println!("FIRST({}) = {:?}", nt, first_set);
+    // }
 
     firsts
 }
@@ -80,18 +86,18 @@ pub fn find_follow(
         set.insert("$".to_string());
     }
 
-    println!("\n== INICIO DEL CÁLCULO DE FOLLOW ==");
-    println!("Símbolo inicial: {}", start_symbol);
+    // println!("\n== INICIO DEL CÁLCULO DE FOLLOW ==");
+    // println!("Símbolo inicial: {}", start_symbol);
 
     // Se repite hasta que no haya cambios
     let mut changed = true;
     while changed {
         changed = false;
-        println!("\n--- Nueva iteración ---");
+        // println!("\n--- Nueva iteración ---");
 
         for (prod_head, productions) in grammar {
             for production in productions {
-                println!("Analizando producción: {} -> {:?}", prod_head, production);
+                // println!("Analizando producción: {} -> {:?}", prod_head, production);
 
                 let prod_len = production.len();
 
@@ -110,10 +116,10 @@ pub fn find_follow(
                         let next = &production[i + 1];
 
                         if terminales.contains(next) {
-                            println!("  Regla 2 (terminal después de {}): agregando {}", current, next);
+                            // println!("  Regla 2 (terminal después de {}): agregando {}", current, next);
                             follow_to_add.insert(next.clone());
                         } else if no_terminales.contains(next) {
-                            println!("  Regla 2 (no terminal después de {}): FIRST({}) = {:?}", current, next, firsts.get(next).unwrap());
+                            // println!("  Regla 2 (no terminal después de {}): FIRST({}) = {:?}", current, next, firsts.get(next).unwrap());
                             let first_of_next = firsts.get(next).unwrap();
                             for symbol in first_of_next {
                                 if symbol != "ε" {
@@ -123,7 +129,7 @@ pub fn find_follow(
 
                             // Si FIRST(beta) contiene ε, aplica también regla 3
                             if first_of_next.contains("ε") {
-                                println!("  FIRST({}) contiene ε, aplicando también regla 3: FOLLOW({})", next, prod_head);
+                                // println!("  FIRST({}) contiene ε, aplicando también regla 3: FOLLOW({})", next, prod_head);
                                 if let Some(follow_of_prod_head) = follows.get(prod_head) {
                                     follow_to_add.extend(follow_of_prod_head.clone());
                                 }
@@ -132,7 +138,7 @@ pub fn find_follow(
                     } 
                     // Regla 3: B -> alpha A
                     else {
-                        println!("  Regla 3 ({} es el último en la producción): agregando FOLLOW({})", current, prod_head);
+                        // println!("  Regla 3 ({} es el último en la producción): agregando FOLLOW({})", current, prod_head);
                         if let Some(follow_of_prod_head) = follows.get(prod_head) {
                             follow_to_add.extend(follow_of_prod_head.clone());
                         }
@@ -143,7 +149,7 @@ pub fn find_follow(
                     let initial_len = follow_set.len();
                     follow_set.extend(follow_to_add);
                     if follow_set.len() > initial_len {
-                        println!("  FOLLOW({}) actualizado: {:?}", current, follow_set);
+                        // println!("  FOLLOW({}) actualizado: {:?}", current, follow_set);
                         changed = true;
                     }
                 }
@@ -151,12 +157,10 @@ pub fn find_follow(
         }
     }
 
+    // println!("\n== FOLLOW ==");
+    // for (nt, follow_set) in &follows {
+    //     println!("FOLLOW({}) = {:?}", nt, follow_set);
+    // }
+
     follows
 }
-
-
-// {"S": [["S", "^", "P"], ["P"]]}
-// {"P": [["P", "v", "Q"], ["Q"]]}
-// {"Q": [["[", "Q", "]"], ["sentence"]]}
-
-// {"S": [["S", "^", "P"], ["P"]], "P": [["P", "v", "Q"], ["Q"]], "Q": [["[", "Q", "]"], ["sentence"]]}
