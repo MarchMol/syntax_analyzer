@@ -7,6 +7,10 @@ pub fn find_first(
 ) -> HashMap<String, HashSet<String>> {
     let mut firsts: HashMap<String, HashSet<String>> = HashMap::new();
 
+    // println!("Producciones: {:?}", grammar);
+    // println!("Terminales: {:?}", terminales);
+    // println!("No terminales: {:?}", no_terminales);
+
     // Función recursiva para obtener FIRST de un símbolo
     fn compute_first(
         symbol: &String,
@@ -56,11 +60,14 @@ pub fn find_first(
 
     for nt in &no_terminales {
         let mut visited = HashSet::new();
-        let first = compute_first(nt, &grammar, &terminales, &no_terminales, &mut firsts, &mut visited);
-        firsts.insert(nt.clone(), first);
+        compute_first(nt, &grammar, &terminales, &no_terminales, &mut firsts, &mut visited);
     }
 
     firsts
 }
 
 // ["S": [["S", "^", "P"], ["P"]]]
+// ["P": [["P", "v", "Q"], ["Q"]]]
+// ["Q": [["[", "Q", "]"], ["sentence"]]]
+
+// {"S": [["S", "^", "P"], ["P"]], "P": [["P", "v", "Q"], ["Q"]], "Q": [["[", "Q", "]"], ["sentence"]]}

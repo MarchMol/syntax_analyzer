@@ -8,6 +8,11 @@ fn main() {
     let terminales = gen_term();
     let no_terminales = gen_not_term();
 
+    // Aqui empiezan las pruebas
+    println!("Producciones: {:?}", producciones);
+    println!("Terminales: {:?}", terminales);
+    println!("No terminales: {:?}", no_terminales);
+
     let mut firsts: HashMap<String, HashSet<String>> = HashMap::new();
     firsts = first_follow::find_first(producciones, terminales, no_terminales);
 
@@ -40,7 +45,7 @@ fn gen_prod()->HashMap<String, Vec<Vec<String>>>{
     producciones
 }
 
-fn gen_term()->HashSet<String>{
+fn gen_not_term()->HashSet<String>{
     let terminales:HashSet<String> = ["S", "P", "Q"]
     .iter()
     .map(|s| s.to_string())
@@ -48,7 +53,7 @@ fn gen_term()->HashSet<String>{
     terminales
 }
 
-fn gen_not_term()->HashSet<String>{
+fn gen_term()->HashSet<String>{
     let no_terminales:HashSet<String> = ["^", "v", "[","]","sentence"]
     .iter()
     .map(|s| s.to_string())
