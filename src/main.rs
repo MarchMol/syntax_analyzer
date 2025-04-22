@@ -1,11 +1,17 @@
 
+use syntax_analyzer::syn::first_follow;
 use std::collections::{HashMap, HashSet};
 
 // use syntax_analyzer::syn::yp_reader;
 fn main() {
     let producciones = gen_prod();
     let terminales = gen_term();
-    let terminales = gen_not_term();
+    let no_terminales = gen_not_term();
+
+    let mut firsts: HashMap<String, HashSet<String>> = HashMap::new();
+    firsts = first_follow::find_first(producciones, terminales, no_terminales);
+
+    println!("{:?}", firsts);
 }
 
 fn gen_prod()->HashMap<String, Vec<Vec<String>>>{
