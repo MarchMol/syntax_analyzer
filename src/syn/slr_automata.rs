@@ -4,6 +4,9 @@ use std::{
     option,
 };
 
+pub type ActionTable = HashMap<(u8, String), String>;
+pub type GotoTable = HashMap<(u8, String), u8>;
+
 #[derive(Eq, Hash, Debug, PartialEq, Clone)]
 pub enum Element {
     Terminal(String),
@@ -23,7 +26,7 @@ pub struct SLR {
 
     // Finish = State that ends production
     //      Structure: (State Id, Production Id)
-    pub finish_states: HashSet<(u8,u8)>,
+    pub finish_states: HashSet<(u8, u8)>,
 
     // Acceptance = State that ends extended production
     //      Structure: (State Id)
@@ -92,13 +95,13 @@ impl SLR {
         }
     }
 
-    pub fn is_finish(&mut self, id: u8)->Option<u8>{
+    pub fn is_finish(&mut self, id: u8) -> Option<u8> {
         let mut is_finish: Option<u8> = None;
-        if let Some(prod_array) = self.contents.get(&id){
-            for prod in prod_array{
-                if let Some(element_array) = self.productions.get(&prod.0){
+        if let Some(prod_array) = self.contents.get(&id) {
+            for prod in prod_array {
+                if let Some(element_array) = self.productions.get(&prod.0) {
                     let prod_len = element_array.len();
-                    if prod_len==(prod.1+1) as usize{
+                    if prod_len == (prod.1 + 1) as usize {
                         is_finish = Some(prod.0)
                     }
                 }
@@ -110,10 +113,10 @@ impl SLR {
         let new_id = self.icount + 1;
         self.icount += 1;
         self.contents.insert(new_id, content);
-        if let Some(finished_prod) = self.is_finish(new_id){
-            if finished_prod == 0{
+        if let Some(finished_prod) = self.is_finish(new_id) {
+            if finished_prod == 0 {
                 self.acceptance_states.insert(new_id);
-            } else{
+            } else {
                 self.finish_states.insert((new_id, finished_prod));
             }
         }
@@ -127,10 +130,10 @@ impl SLR {
             .insert(trans, to);
     }
 
-    pub fn print_state(&self, state_index: u8)->String{
+    pub fn print_state(&self, state_index: u8) -> String {
         let mut state_content = String::new();
         if let Some(contents) = self.contents.get(&state_index) {
-            state_content+=&format!("I{}\n",state_index);
+            state_content += &format!("I{}\n", state_index);
 
             for prod_id in contents {
                 // println!("{:?}, {:?}",self.productions.get(&prod.0),prod.1);
@@ -155,7 +158,7 @@ impl SLR {
                             line += ". "
                         }
                     }
-                    state_content+=&format!("~ {}\n",line);
+                    state_content += &format!("~ {}\n", line);
                 }
             }
         } else {
@@ -186,7 +189,6 @@ impl SLR {
 
     pub fn generate(&mut self) {
         // State 0
-        // self.indexes.insert(0, "I0".to_string());
         let mut i0_content: Vec<(u8, u8)> = Vec::new();
         for i in 0..self.pcount {
             i0_content.push((i, 0));
@@ -194,21 +196,23 @@ impl SLR {
         self.contents.insert(0, i0_content);
 
         // first layer
-        // println!("cg: {:?}", Vec::from([0]));
         self.calculate_w_generation(Vec::from([0]));
-        while !self.current_generation.is_empty(){
+        while !self.current_generation.is_empty() {
             let mut sorted_vec: Vec<u8> = self.current_generation.iter().cloned().collect();
-            sorted_vec.sort_by(|a, b| a.cmp(b)); 
-            // println!("cg: {:?}", sorted_vec);
-            self.current_generation.drain();
+            sorted_vec.sort_by(|a, b| a.cmp(b));
+            self.current_generation.clear();
             self.calculate_w_generation(sorted_vec);
         }
-        println!("Finish: {:?}",self.finish_states);
-        println!("Acceptance: {:?}",self.acceptance_states);
-        // println!("{:?}",self.contents.get(&6));
-        // for i in 0..self.icount+1{
-        //     self.print_state(i);
-        // }
+
+        // show finish & acceptance
+        println!("Finish states: {:?}", self.finish_states);
+        println!("Acceptance states: {:?}", self.acceptance_states);
+
+        // <<< NUEVA SECCIÓN: imprimir todos los estados >>>
+        for state_id in 0..=self.icount {
+            let dump = self.print_state(state_id);
+            println!("{}", dump);
+        }
     }
 
     pub fn calculate_w_generation(&mut self, generation: Vec<u8>) {
@@ -219,7 +223,7 @@ impl SLR {
             let mut outgoing_trans: Vec<(Element, HashSet<u8>)> = Vec::new();
             if let Some(last_contents) = self.contents.get(&last_id) {
                 // Get contents of origin state
-                for (i,pointed_prod) in last_contents.iter().enumerate() {
+                for (i, pointed_prod) in last_contents.iter().enumerate() {
                     // For each pointed production
                     if let Some(prod) = self.productions.get(&pointed_prod.0) {
                         // ProdId->Production
@@ -247,15 +251,14 @@ impl SLR {
                 let mut sorted_vec: Vec<u8> = trans.1.iter().cloned().collect();
                 sorted_vec.sort_by(|a, b| b.cmp(a));
                 if let Some(last_contents) = self.contents.get(&last_id) {
-                    for prod_id in sorted_vec{
-                        if let Some(pointed_prod) = last_contents.get(prod_id as usize){
-                            let pointer = pointed_prod.1+1;
+                    for prod_id in sorted_vec {
+                        if let Some(pointed_prod) = last_contents.get(prod_id as usize) {
+                            let pointer = pointed_prod.1 + 1;
                             state_const.push((pointed_prod.0, pointer));
                         }
                     }
-                    
                 }
-                    
+
                 // 2. Closure loop
                 // println!("Before closure: {:?}",state_const);
                 // println!("* Closures:");
@@ -284,7 +287,7 @@ impl SLR {
                         }
                     }
                 }
-                println!("{:?}",state_const);
+                println!("{:?}", state_const);
                 // 3. Does it compare to other states?
                 // Check if it exists
                 let mut exists: Option<u8> = None;
@@ -307,6 +310,51 @@ impl SLR {
                 print!("\n");
             }
         }
+    }
+    /// Construye las tablas ACTION y GOTO usando los FOLLOW sets
+    pub fn build_parsing_table(
+        &self,
+        follows: &HashMap<String, HashSet<String>>,
+    ) -> (ActionTable, GotoTable) {
+        let mut action: ActionTable = HashMap::new();
+        let mut goto: GotoTable = HashMap::new();
+
+        // 1) Shift y Goto desde las transiciones
+        for (&state, trans_map) in &self.edges {
+            for (sym, &dest) in trans_map {
+                match sym {
+                    Element::Terminal(t) => {
+                        action.insert((state, t.clone()), format!("s{}", dest));
+                    }
+                    Element::NonTerminal(nt) => {
+                        goto.insert((state, nt.clone()), dest);
+                    }
+                }
+            }
+        }
+
+        // 2) Reduce: para cada estado final (no-accept) y cada a ∈ FOLLOW(head)
+        for &(state, prod_id) in &self.finish_states {
+            // cabeza de la producción
+            let head = if let Element::NonTerminal(ref nt) = self.productions[&prod_id][0] {
+                nt.clone()
+            } else {
+                continue;
+            };
+
+            if let Some(fset) = follows.get(&head) {
+                for term in fset {
+                    action.insert((state, term.clone()), format!("r{}", prod_id));
+                }
+            }
+        }
+
+        // 3) Accept
+        for &state in &self.acceptance_states {
+            action.insert((state, "$".to_string()), "acc".to_string());
+        }
+
+        (action, goto)
     }
 }
 

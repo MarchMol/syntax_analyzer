@@ -1,46 +1,82 @@
-
-use syntax_analyzer::syn::first_follow;
 use std::collections::{HashMap, HashSet};
+use syntax_analyzer::syn::first_follow;
 
 // use syntax_analyzer::syn::yp_reader;
 use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
+
 fn main() {
-    first_and_follow();
-    let producciones = gen_prod(0);
-    let terminales = gen_term(0);
-    let mut _slr = slr_automata::SLR::new(producciones, terminales);
-    _slr.generate();
-    render::render_png(&_slr);
+    // --- 1) Calcular FIRST/FOLLOW sobre la gramática ejemplo 0 ---
+    let follows = first_and_follow(0);
+
+    // --- 2) Construir y volcar el autómata SLR usando la misma gramática 0 ---
+    let prod_slr = gen_prod(0);
+    let term_slr = gen_term(0);
+    let mut slr = slr_automata::SLR::new(prod_slr, term_slr);
+    slr.generate();
+
+    // --- 3) Generar ACTION y GOTO usando el FOLLOW de la gramática 0 ---
+    let (action, goto) = slr.build_parsing_table(&follows);
+
+    // --- 4) Imprimir ACTION (incluye shifts, reduces y acc) ---
+    println!("\n== ACTION ==");
+    for ((state, sym), act) in &action {
+        println!("ACTION[{}, '{}'] = {}", state, sym, act);
+    }
+
+    // --- 5) Imprimir GOTO ---
+    println!("\n== GOTO ==");
+    for ((state, nt), dest) in &goto {
+        println!("GOTO[{}, {}] = {}", state, nt, dest);
+    }
+
+    // --- 6) Renderizar PNG del autómata ---
+    render::render_png(&slr);
 }
 
-pub fn first_and_follow(){
-    let producciones = gen_prod(1);
-    let terminales = gen_term(1);
-    let no_terminales = gen_not_term(1);
-    let first_term = "E".to_string();
+/// Ahora toma `example` y devuelve el map de FOLLOW
+fn first_and_follow(example: i32) -> HashMap<String, HashSet<String>> {
+    let productions = gen_prod(example);
+    let terminals = gen_term(example);
+    let non_terminals = gen_not_term(example);
+    let start_symbol = match example {
+        0 => "S".to_string(), // cabeza de tu gramática 0
+        1 => "E".to_string(),
+        _ => panic!("Example no válido"),
+    };
 
-    // Aqui empiezan las pruebas
-    println!("Producciones: {:?}", producciones);
-    println!("Terminales: {:?}", terminales);
-    println!("No terminales: {:?}", no_terminales);
+    println!("Producciones: {:?}", productions);
+    println!("Terminales:   {:?}", terminals);
+    println!("No-terminales:{:?}", non_terminals);
 
-    let firsts = first_follow::find_first(producciones.clone(), terminales.clone(), no_terminales.clone());
+    let firsts = first_follow::find_first(
+        productions.clone(),
+        terminals.clone(),
+        non_terminals.clone(),
+    );
     println!("\n== FIRST ==");
-    for (nt, first_set) in &firsts {
-        println!("FIRST({}) = {:?}", nt, first_set);
+    for (nt, set) in &firsts {
+        println!("FIRST({}) = {:?}", nt, set);
     }
 
-    let follows = first_follow::find_follow(&producciones, &terminales, &no_terminales, &firsts, &first_term);
+    let follows = first_follow::find_follow(
+        &productions,
+        &terminals,
+        &non_terminals,
+        &firsts,
+        &start_symbol,
+    );
     println!("\n== FOLLOW ==");
-    for (nt, follow_set) in &follows {
-        println!("FOLLOW({}) = {:?}", nt, follow_set);
+    for (nt, set) in &follows {
+        println!("FOLLOW({}) = {:?}", nt, set);
     }
+
+    follows // devolvemos el map de FOLLOW
 }
 
-fn gen_prod(example: i32) -> HashMap<String, Vec<Vec<String>>>{
-    if example == 0{
-        let mut producciones:HashMap<String, Vec<Vec<String>>> = HashMap::new();
+fn gen_prod(example: i32) -> HashMap<String, Vec<Vec<String>>> {
+    if example == 0 {
+        let mut producciones: HashMap<String, Vec<Vec<String>>> = HashMap::new();
         producciones.insert(
             "S".to_string(),
             vec![
@@ -63,14 +99,11 @@ fn gen_prod(example: i32) -> HashMap<String, Vec<Vec<String>>>{
             ],
         );
         return producciones;
-    }
-    else if example == 1 {
-        let mut producciones:HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    } else if example == 1 {
+        let mut producciones: HashMap<String, Vec<Vec<String>>> = HashMap::new();
         producciones.insert(
             "E".to_string(),
-            vec![
-                vec!["T", "E'"].into_iter().map(String::from).collect(),
-            ],
+            vec![vec!["T", "E'"].into_iter().map(String::from).collect()],
         );
         producciones.insert(
             "E'".to_string(),
@@ -81,9 +114,7 @@ fn gen_prod(example: i32) -> HashMap<String, Vec<Vec<String>>>{
         );
         producciones.insert(
             "T".to_string(),
-            vec![
-                vec!["F", "T'"].into_iter().map(String::from).collect(),
-            ],
+            vec![vec!["F", "T'"].into_iter().map(String::from).collect()],
         );
         producciones.insert(
             "T'".to_string(),
@@ -101,45 +132,43 @@ fn gen_prod(example: i32) -> HashMap<String, Vec<Vec<String>>>{
         );
         return producciones;
     } else {
-        let producciones:HashMap<String, Vec<Vec<String>>> = HashMap::new();
+        let producciones: HashMap<String, Vec<Vec<String>>> = HashMap::new();
         return producciones;
     }
 }
 
-fn gen_not_term(example: i32)->HashSet<String>{
-    if example == 0{
-        let no_terminales:HashSet<String> = ["S", "P", "Q"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+fn gen_not_term(example: i32) -> HashSet<String> {
+    if example == 0 {
+        let no_terminales: HashSet<String> =
+            ["S", "P", "Q"].iter().map(|s| s.to_string()).collect();
         return no_terminales;
     } else if example == 1 {
-        let no_terminales:HashSet<String> = ["E", "E'", "T", "T'", "F"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+        let no_terminales: HashSet<String> = ["E", "E'", "T", "T'", "F"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         return no_terminales;
     } else {
-        let no_terminales:HashSet<String> = HashSet::new();
+        let no_terminales: HashSet<String> = HashSet::new();
         return no_terminales;
     }
 }
 
-fn gen_term(example: i32)->HashSet<String>{
-    if example == 0{
-        let no_terminales:HashSet<String> = ["^", "v", "[","]","sentence"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+fn gen_term(example: i32) -> HashSet<String> {
+    if example == 0 {
+        let no_terminales: HashSet<String> = ["^", "v", "[", "]", "sentence"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         return no_terminales;
     } else if example == 1 {
-        let terminales:HashSet<String> = ["+", "*", "(", ")", "id", "ε"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+        let terminales: HashSet<String> = ["+", "*", "(", ")", "id", "ε"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         return terminales;
     } else {
-        let terminales:HashSet<String> = HashSet::new();
+        let terminales: HashSet<String> = HashSet::new();
         return terminales;
     }
 }
