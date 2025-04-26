@@ -3,7 +3,18 @@ use syntax_analyzer::syn::first_follow;
 use std::collections::{HashMap, HashSet};
 
 // use syntax_analyzer::syn::yp_reader;
+use syntax_analyzer::syn::slr_automata;
+use syntax_analyzer::view::render;
 fn main() {
+    first_and_follow();
+    let producciones = gen_prod(0);
+    let terminales = gen_term(0);
+    let mut _slr = slr_automata::SLR::new(producciones, terminales);
+    _slr.generate();
+    render::render_png(&_slr);
+}
+
+pub fn first_and_follow(){
     let producciones = gen_prod(1);
     let terminales = gen_term(1);
     let no_terminales = gen_not_term(1);
