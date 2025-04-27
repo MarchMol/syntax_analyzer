@@ -18,7 +18,7 @@ fn main() {
     // 3) Construcción de las tablas ACTION y GOTO
     let (action, goto) = slr.build_parsing_table(&follows);
 
-    // 4) Imprimir tablas (opcional, para depuración)
+    // 4) Imprimir tablas
     println!("\n== ACTION ==");
     for ((st, sym), act) in &action {
         println!("ACTION[{}, '{}'] = {}", st, sym, act);
@@ -28,13 +28,13 @@ fn main() {
         println!("GOTO[{}, {}] = {}", st, nt, dest);
     }
 
-    // 5) Probar el parser con una cadena válida
+    // 5) Probar el parser
     let input = vec!["[".to_string(), "sentence".to_string(), "]".to_string()];
     let accepted = slr.parse(&input, &action, &goto);
     println!("\nParse result for {:?}: {}", input, accepted);
 
-    // 6) Renderizar el autómata
-    render::render_png(&slr);
+    // → Aquí NO hay ninguna llamada a render::render_png,
+    //   así el programa termina inmediatamente.
 }
 
 /// Ahora toma `example` y devuelve el map de FOLLOW

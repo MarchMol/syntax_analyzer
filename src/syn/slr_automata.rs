@@ -359,70 +359,99 @@ impl SLR {
         (action, goto)
     }
 
-    /// Recibe la lista de tokens (sin "$"), las tablas ACTION/GOTO y devuelve true si acepta.
+    /// Shift–reduce parser with panic‐mode error recovery.
     pub fn parse(
         &self,
         tokens: &[String],
         action: &HashMap<(u8, String), String>,
         goto: &HashMap<(u8, String), u8>,
     ) -> bool {
-        // Pila de estados
+        // 1) Stack of states, start at 0
         let mut stack: Vec<u8> = vec![0];
-        // Iterador con peek y un "$" final
+        // 2) Make a peekable iterator over the tokens + "$"
         let mut input: Peekable<_> = tokens
             .iter()
             .cloned()
             .chain(std::iter::once("$".to_string()))
             .peekable();
 
+        // 3) Synchronizing set for panic‐mode
+        let sync_set: HashSet<&str> = ["$", "]"].iter().cloned().collect();
+
         loop {
             let state = *stack.last().unwrap();
-            // Mirar, pero NO consumir
+            // peek WITHOUT consuming
             let lookahead = input.peek().unwrap().clone();
             let key = (state, lookahead.clone());
 
             match action.get(&key).map(String::as_str) {
-                // SHIFT → se consume el token
+                // SHIFT: consume token
                 Some(s) if s.starts_with('s') => {
-                    let next_state: u8 = s[1..].parse().unwrap();
-                    stack.push(next_state);
-                    input.next(); // aquí sí avanzamos
+                    let next_st: u8 = s[1..].parse().unwrap();
+                    stack.push(next_st);
+                    input.next();
                 }
 
-                // REDUCE → no consumimos el lookahead
+                // REDUCE: pop rhs_len, then push goto[state, LHS]
                 Some(r) if r.starts_with('r') => {
                     let prod_id: u8 = r[1..].parse().unwrap();
                     let rhs_len = self.productions[&prod_id].len() - 1;
-                    // Sacar tantos estados como largo tenga el RHS
                     for _ in 0..rhs_len {
                         stack.pop();
                     }
                     let top = *stack.last().unwrap();
-                    // Obtener LHS de la producción
                     let lhs = if let Element::NonTerminal(nt) = &self.productions[&prod_id][0] {
                         nt.clone()
                     } else {
                         unreachable!()
                     };
-                    // Lookup seguro en GOTO
                     let goto_key = (top, lhs.clone());
-                    let goto_state = match goto.get(&goto_key) {
+                    let goto_st = match goto.get(&goto_key) {
                         Some(&st) => st,
                         None => {
-                            eprintln!("No GOTO entry for state {} and non-terminal '{}'", top, lhs);
+                            eprintln!(
+                                "Error: no GOTO entry for state {} and non-terminal '{}'",
+                                top, lhs
+                            );
                             return false;
                         }
                     };
-                    stack.push(goto_state);
+                    stack.push(goto_st);
                 }
 
                 // ACCEPT
                 Some("acc") => return true,
 
-                // ERROR
+                // ERROR → panic‐mode recovery
                 _ => {
-                    eprintln!("Parse error at state {}, lookahead '{}'", state, lookahead);
-                    return false;
+                    eprintln!("Syntax error at state {}, token '{}'", state, lookahead);
+
+                    // 3a) Discard until a synchronizing token
+                    while let Some(tok) = input.peek() {
+                        if sync_set.contains(tok.as_str()) {
+                            break;
+                        }
+                        input.next();
+                    }
+                    // 3b) Pop states until we can shift the sync token
+                    let sync = input.peek().unwrap().clone();
+                    while stack.len() > 1 {
+                        let top_st = *stack.last().unwrap();
+                        if let Some(act) = action.get(&(top_st, sync.clone())) {
+                            if act.starts_with('s') {
+                                break;
+                            }
+                        }
+                        stack.pop();
+                    }
+                    // 3c) If still no SHIFT on sync, give up
+                    if action
+                        .get(&(*stack.last().unwrap(), sync.clone()))
+                        .is_none()
+                    {
+                        return false;
+                    }
+                    // else: loop around, and the SHIFT arm will consume it
                 }
             }
         }
