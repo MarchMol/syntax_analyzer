@@ -6,35 +6,52 @@ use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
 
 fn main() {
-    // 1) FIRST/FOLLOW sobre la gramática 0
+    // 1) FIRST/FOLLOW
     let follows = first_and_follow(0);
 
-    // 2) Construcción del autómata SLR con la misma gramática 0
+    // 2) Construcción del autómata
     let prod_slr = gen_prod(0);
     let term_slr = gen_term(0);
     let mut slr = slr_automata::SLR::new(prod_slr, term_slr);
     slr.generate();
 
-    // 3) Construcción de las tablas ACTION y GOTO
+    // 3) Construcción de la tabla SLR
     let (action, goto) = slr.build_parsing_table(&follows);
 
-    // 4) Imprimir tablas
-    println!("\n== ACTION ==");
-    for ((st, sym), act) in &action {
-        println!("ACTION[{}, '{}'] = {}", st, sym, act);
-    }
-    println!("\n== GOTO ==");
-    for ((st, nt), dest) in &goto {
-        println!("GOTO[{}, {}] = {}", st, nt, dest);
-    }
+    // 4) Pruebas de parsing
+    run_tests(&slr, &action, &goto);
 
-    // 5) Probar el parser
-    let input = vec!["[".to_string(), "sentence".to_string(), "]".to_string()];
-    let accepted = slr.parse(&input, &action, &goto);
-    println!("\nParse result for {:?}: {}", input, accepted);
+    // 5) Renderizar el autómata
+    render::render_png(&slr);
+}
 
-    // → Aquí NO hay ninguna llamada a render::render_png,
-    //   así el programa termina inmediatamente.
+fn run_tests(
+    slr: &slr_automata::SLR,
+    action: &HashMap<(u8, String), String>,
+    goto: &HashMap<(u8, String), u8>,
+) {
+    let tests = vec![
+        (
+            vec!["[".to_string(), "sentence".to_string(), "]".to_string()],
+            true,
+        ),
+        (vec!["[".to_string(), "]".to_string()], false),
+        (vec!["sentence".to_string(), "]".to_string()], false),
+        (vec!["v".to_string()], false),
+    ];
+
+    for (input, expected) in tests {
+        let result = slr.parse(&input, action, goto);
+        println!(
+            "Test {:?}: {}",
+            input,
+            if result == expected {
+                " Passed"
+            } else {
+                "Failed"
+            }
+        );
+    }
 }
 
 /// Ahora toma `example` y devuelve el map de FOLLOW

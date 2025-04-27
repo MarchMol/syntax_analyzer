@@ -359,46 +359,46 @@ impl SLR {
         (action, goto)
     }
 
-    /// Shift–reduce parser with panic‐mode error recovery.
     pub fn parse(
         &self,
         tokens: &[String],
         action: &HashMap<(u8, String), String>,
         goto: &HashMap<(u8, String), u8>,
     ) -> bool {
-        // 1) Stack of states, start at 0
         let mut stack: Vec<u8> = vec![0];
-        // 2) Make a peekable iterator over the tokens + "$"
+        let mut had_error = false;
         let mut input: Peekable<_> = tokens
             .iter()
             .cloned()
             .chain(std::iter::once("$".to_string()))
             .peekable();
-
-        // 3) Synchronizing set for panic‐mode
         let sync_set: HashSet<&str> = ["$", "]"].iter().cloned().collect();
+
+        // Verificación inicial para tokens inválidos en estado 0
+        if let Some(first_token) = input.peek() {
+            let initial_key = (0, first_token.clone());
+            if !action.contains_key(&initial_key) && !goto.contains_key(&initial_key) {
+                eprintln!("Invalid initial token '{}'", first_token);
+                return false;
+            }
+        }
 
         loop {
             let state = *stack.last().unwrap();
-            // peek WITHOUT consuming
             let lookahead = input.peek().unwrap().clone();
             let key = (state, lookahead.clone());
 
             match action.get(&key).map(String::as_str) {
-                // SHIFT: consume token
+                Some("acc") => return !had_error,
                 Some(s) if s.starts_with('s') => {
                     let next_st: u8 = s[1..].parse().unwrap();
                     stack.push(next_st);
                     input.next();
                 }
-
-                // REDUCE: pop rhs_len, then push goto[state, LHS]
                 Some(r) if r.starts_with('r') => {
                     let prod_id: u8 = r[1..].parse().unwrap();
                     let rhs_len = self.productions[&prod_id].len() - 1;
-                    for _ in 0..rhs_len {
-                        stack.pop();
-                    }
+                    stack.truncate(stack.len() - rhs_len);
                     let top = *stack.last().unwrap();
                     let lhs = if let Element::NonTerminal(nt) = &self.productions[&prod_id][0] {
                         nt.clone()
@@ -418,40 +418,40 @@ impl SLR {
                     };
                     stack.push(goto_st);
                 }
-
-                // ACCEPT
-                Some("acc") => return true,
-
-                // ERROR → panic‐mode recovery
                 _ => {
                     eprintln!("Syntax error at state {}, token '{}'", state, lookahead);
+                    had_error = true;
 
-                    // 3a) Discard until a synchronizing token
-                    while let Some(tok) = input.peek() {
-                        if sync_set.contains(tok.as_str()) {
-                            break;
-                        }
+                    // Si el token actual no es sincronizador y no es el fin de entrada
+                    if !sync_set.contains(lookahead.as_str()) && lookahead != "$" {
+                        eprintln!("Skipping invalid token '{}'", lookahead);
                         input.next();
+                        continue;
                     }
-                    // 3b) Pop states until we can shift the sync token
-                    let sync = input.peek().unwrap().clone();
+
+                    // Si llegamos al fin de entrada con errores, fallamos
+                    if lookahead == "$" {
+                        return false;
+                    }
+
+                    // Intentamos recuperar en el token de sincronización
+                    let sync_token = lookahead;
+                    let mut can_recover = false;
+
                     while stack.len() > 1 {
-                        let top_st = *stack.last().unwrap();
-                        if let Some(act) = action.get(&(top_st, sync.clone())) {
-                            if act.starts_with('s') {
+                        let top_state = *stack.last().unwrap();
+                        if let Some(action_str) = action.get(&(top_state, sync_token.clone())) {
+                            if action_str.starts_with('s') {
+                                can_recover = true;
                                 break;
                             }
                         }
                         stack.pop();
                     }
-                    // 3c) If still no SHIFT on sync, give up
-                    if action
-                        .get(&(*stack.last().unwrap(), sync.clone()))
-                        .is_none()
-                    {
+
+                    if !can_recover {
                         return false;
                     }
-                    // else: loop around, and the SHIFT arm will consume it
                 }
             }
         }
