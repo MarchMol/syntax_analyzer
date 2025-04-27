@@ -6,31 +6,34 @@ use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
 
 fn main() {
-    // --- 1) Calcular FIRST/FOLLOW sobre la gramática ejemplo 0 ---
+    // 1) FIRST/FOLLOW sobre la gramática 0
     let follows = first_and_follow(0);
 
-    // --- 2) Construir y volcar el autómata SLR usando la misma gramática 0 ---
+    // 2) Construcción del autómata SLR con la misma gramática 0
     let prod_slr = gen_prod(0);
     let term_slr = gen_term(0);
     let mut slr = slr_automata::SLR::new(prod_slr, term_slr);
     slr.generate();
 
-    // --- 3) Generar ACTION y GOTO usando el FOLLOW de la gramática 0 ---
+    // 3) Construcción de las tablas ACTION y GOTO
     let (action, goto) = slr.build_parsing_table(&follows);
 
-    // --- 4) Imprimir ACTION (incluye shifts, reduces y acc) ---
+    // 4) Imprimir tablas (opcional, para depuración)
     println!("\n== ACTION ==");
-    for ((state, sym), act) in &action {
-        println!("ACTION[{}, '{}'] = {}", state, sym, act);
+    for ((st, sym), act) in &action {
+        println!("ACTION[{}, '{}'] = {}", st, sym, act);
     }
-
-    // --- 5) Imprimir GOTO ---
     println!("\n== GOTO ==");
-    for ((state, nt), dest) in &goto {
-        println!("GOTO[{}, {}] = {}", state, nt, dest);
+    for ((st, nt), dest) in &goto {
+        println!("GOTO[{}, {}] = {}", st, nt, dest);
     }
 
-    // --- 6) Renderizar PNG del autómata ---
+    // 5) Probar el parser con una cadena válida
+    let input = vec!["[".to_string(), "sentence".to_string(), "]".to_string()];
+    let accepted = slr.parse(&input, &action, &goto);
+    println!("\nParse result for {:?}: {}", input, accepted);
+
+    // 6) Renderizar el autómata
     render::render_png(&slr);
 }
 

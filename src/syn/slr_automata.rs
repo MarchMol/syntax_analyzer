@@ -7,6 +7,8 @@ use std::{
 pub type ActionTable = HashMap<(u8, String), String>;
 pub type GotoTable = HashMap<(u8, String), u8>;
 
+use std::iter::Peekable;
+
 #[derive(Eq, Hash, Debug, PartialEq, Clone)]
 pub enum Element {
     Terminal(String),
@@ -355,6 +357,75 @@ impl SLR {
         }
 
         (action, goto)
+    }
+
+    /// Recibe la lista de tokens (sin "$"), las tablas ACTION/GOTO y devuelve true si acepta.
+    pub fn parse(
+        &self,
+        tokens: &[String],
+        action: &HashMap<(u8, String), String>,
+        goto: &HashMap<(u8, String), u8>,
+    ) -> bool {
+        // Pila de estados
+        let mut stack: Vec<u8> = vec![0];
+        // Iterador con peek y un "$" final
+        let mut input: Peekable<_> = tokens
+            .iter()
+            .cloned()
+            .chain(std::iter::once("$".to_string()))
+            .peekable();
+
+        loop {
+            let state = *stack.last().unwrap();
+            // Mirar, pero NO consumir
+            let lookahead = input.peek().unwrap().clone();
+            let key = (state, lookahead.clone());
+
+            match action.get(&key).map(String::as_str) {
+                // SHIFT → se consume el token
+                Some(s) if s.starts_with('s') => {
+                    let next_state: u8 = s[1..].parse().unwrap();
+                    stack.push(next_state);
+                    input.next(); // aquí sí avanzamos
+                }
+
+                // REDUCE → no consumimos el lookahead
+                Some(r) if r.starts_with('r') => {
+                    let prod_id: u8 = r[1..].parse().unwrap();
+                    let rhs_len = self.productions[&prod_id].len() - 1;
+                    // Sacar tantos estados como largo tenga el RHS
+                    for _ in 0..rhs_len {
+                        stack.pop();
+                    }
+                    let top = *stack.last().unwrap();
+                    // Obtener LHS de la producción
+                    let lhs = if let Element::NonTerminal(nt) = &self.productions[&prod_id][0] {
+                        nt.clone()
+                    } else {
+                        unreachable!()
+                    };
+                    // Lookup seguro en GOTO
+                    let goto_key = (top, lhs.clone());
+                    let goto_state = match goto.get(&goto_key) {
+                        Some(&st) => st,
+                        None => {
+                            eprintln!("No GOTO entry for state {} and non-terminal '{}'", top, lhs);
+                            return false;
+                        }
+                    };
+                    stack.push(goto_state);
+                }
+
+                // ACCEPT
+                Some("acc") => return true,
+
+                // ERROR
+                _ => {
+                    eprintln!("Parse error at state {}, lookahead '{}'", state, lookahead);
+                    return false;
+                }
+            }
+        }
     }
 }
 
