@@ -4,26 +4,51 @@ use syntax_analyzer::syn::first_follow;
 // use syntax_analyzer::syn::yp_reader;
 use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
+use syntax_analyzer::syn::yp_reader::read_yalpar;
+fn main(){
+    // 1. Source Grammar
+    let filename = "./grammar/parser.yalp";
+    let grammar = read_yalpar(filename);
 
-fn main() {
-    // 1) FIRST/FOLLOW
-    let follows = first_and_follow(0);
+    // 2. First/Follow
+    let firsts = first_follow::find_first(
+        grammar.productions.clone(),
+        grammar.terminals.clone(),
+        grammar.non_terminals.clone(),
+    );
 
-    // 2) Construcción del autómata
-    let prod_slr = gen_prod(0);
-    let term_slr = gen_term(0);
-    let mut slr = slr_automata::SLR::new(prod_slr, term_slr);
-    slr.generate();
+    let follows = first_follow::find_follow(
+        & grammar.productions,
+        &grammar.terminals,
+        &grammar.non_terminals,
+        &firsts,
+        &grammar.init_symbol,
+    );
 
-    // 3) Construcción de la tabla SLR
-    let (action, goto) = slr.build_parsing_table(&follows);
-
-    // 4) Pruebas de parsing
-    run_tests(&slr, &action, &goto);
-
-    // 5) Renderizar el autómata
-    render::render_png(&slr);
+    println!("\n== FOLLOW ==");
+    for (nt, set) in &follows {
+        println!("FOLLOW({}) = {:?}", nt, set);
+    }
 }
+// fn main() {
+//     // 1) FIRST/FOLLOW
+//     let follows = first_and_follow(0);
+
+//     // 2) Construcción del autómata
+//     let prod_slr = gen_prod(0);
+//     let term_slr = gen_term(0);
+//     let mut slr = slr_automata::SLR::new(prod_slr, term_slr);
+//     slr.generate();
+
+//     // 3) Construcción de la tabla SLR
+//     let (action, goto) = slr.build_parsing_table(&follows);
+
+//     // 4) Pruebas de parsing
+//     run_tests(&slr, &action, &goto);
+
+//     // 5) Renderizar el autómata
+//     render::render_png(&slr);
+// }
 
 fn run_tests(
     slr: &slr_automata::SLR,
