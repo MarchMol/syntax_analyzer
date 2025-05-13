@@ -10,4 +10,5 @@ pub mod syn{
 
 pub mod view{
     pub mod render;
+    pub mod print_table;
 }

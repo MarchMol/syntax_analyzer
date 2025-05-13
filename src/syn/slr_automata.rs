@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    hash::Hash,
-    option,
+    hash::Hash
 };
 
 pub type ActionTable = HashMap<(u8, String), String>;
@@ -17,8 +16,7 @@ pub enum Element {
 
 pub struct SLR {
     // State id -> State name
-    indexes: HashMap<u8, String>,
-    icount: u8,
+    pub icount: u8,
     // State id + Element -> State id
     pub edges: HashMap<u8, HashMap<Element, u8>>,
 
@@ -45,7 +43,7 @@ pub struct SLR {
 }
 
 impl SLR {
-    pub fn new(productions: HashMap<String, Vec<Vec<String>>>, terminals: HashSet<String>) -> Self {
+    pub fn new(productions: &HashMap<String, Vec<Vec<String>>>, terminals: &HashSet<String>) -> Self {
         let mut heads: HashMap<Element, HashSet<u8>> = HashMap::new();
         let mut fprods: HashMap<u8, Vec<Element>> = HashMap::new();
         fprods.insert(
@@ -84,7 +82,6 @@ impl SLR {
             }
         }
         SLR {
-            indexes: HashMap::new(),
             icount: 0,
             edges: HashMap::new(),
             contents: HashMap::new(),
