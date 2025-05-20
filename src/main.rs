@@ -79,12 +79,10 @@ fn main(){
     );
 
     // 8. Mostrar resultados
-    for step in &parsing_steps {
-        println!(
-            "{:<30} {:<30} {}",
-            step.stack, step.input, step.action
-        );
-    }
+    let _steps_rslt = print_table::print_parse_steps(
+        &parsing_steps,
+        "graph/parsing_steps.txt"
+    );
 }
 
 

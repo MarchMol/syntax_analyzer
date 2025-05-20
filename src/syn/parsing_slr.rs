@@ -24,8 +24,8 @@ pub fn slr_parsing(
 
     let mut input_buf = input;
 
-    // println!("\n--- SLR Parsing Start ---");
-    // println!("Initial Stack: {:?}, Symbols: {:?}, Input: {}\n", stack, symbols, input_buf.join(" "));
+    println!("\n--- SLR Parsing Start ---");
+    println!("Initial Stack: {:?}, Symbols: {:?}, Input: {}\n", stack, symbols, input_buf.join(" "));
 
     loop {
         let state = *stack.last().unwrap();
@@ -37,15 +37,15 @@ pub fn slr_parsing(
         let stack_str = format!("{:?} {:?}", stack, symbols);
         let input_str = input_buf.join(" ");
 
-        // println!("Current State: {}", state);
-        // println!("Next Input Token: {}", current_token);
-        // println!("Action Lookup: {:?}", action);
+        println!("Current State: {}", state);
+        println!("Next Input Token: {}", current_token);
+        println!("Action Lookup: {:?}", action);
 
         match action {
             Some(act) if act.starts_with("s") => {
                 // Shift
                 let next_state: u8 = act[1..].parse().unwrap();
-                // println!("-> SHIFT to state {}", next_state);
+                println!("-> SHIFT to state {}", next_state);
                 symbols.push(current_token.clone());
                 stack.push(next_state);
                 input_buf.remove(0);
@@ -66,7 +66,7 @@ pub fn slr_parsing(
                 };
 
                 let rhs_len = production.len() - 1; // omit head
-                // println!("-> REDUCE by r{}: {} -> {:?}", prod_id, lhs, &production[1..]);
+                println!("-> REDUCE by r{}: {} -> {:?}", prod_id, lhs, &production[1..]);
                 for _ in 0..rhs_len {
                     stack.pop();
                     symbols.pop();
@@ -77,7 +77,7 @@ pub fn slr_parsing(
                     .get(&(top_state, lhs.clone()))
                     .expect("Missing goto");
 
-                // println!("Goto Lookup: ({}, {}) -> {}", top_state, lhs, goto_state);
+                println!("Goto Lookup: ({}, {}) -> {}", top_state, lhs, goto_state);
 
                 stack.push(*goto_state);
                 symbols.push(lhs.clone());
@@ -85,20 +85,20 @@ pub fn slr_parsing(
                 steps.push(ParsingStep {
                     stack: stack_str,
                     input: input_str,
-                    action: format!("Reduce by r{}: {} → {:?}", prod_id, lhs, &production[1..]),
+                    action: format!("r{}: {} → {:?}", prod_id, lhs, &production[1..]),
                 });
             }
             Some(act) if act == "acc" => {
-                // println!("-> ACCEPT");
+                println!("-> ACCEPT");
                 steps.push(ParsingStep {
                     stack: stack_str,
                     input: input_str,
-                    action: "Accept".to_string(),
+                    action: "ACCEPTANCE".to_string(),
                 });
                 break;
             }
             _ => {
-                // println!("-> ERROR: no action found for ({}, {})", state, current_token);
+                println!("-> ERROR: no action found for ({}, {})", state, current_token);
                 steps.push(ParsingStep {
                     stack: stack_str,
                     input: input_str,
@@ -107,9 +107,8 @@ pub fn slr_parsing(
                 break;
             }
         }
-        // println!("Updated Stack: {:?}, Symbols: {:?}, Remaining Input: {}\n", stack, symbols, input_buf.join(" "));
+        println!("Updated Stack: {:?}, Symbols: {:?}, Remaining Input: {}\n", stack, symbols, input_buf.join(" "));
     }
-    // println!("--- SLR Parsing Finished ---\n");
-    print!("\n--- PARSING ACCEPTED ---\n");
+    print!("\n--- SLR PARSING ACCEPTED ---\n");
     steps
 }
