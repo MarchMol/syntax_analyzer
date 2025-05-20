@@ -5,6 +5,9 @@ use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
 use syntax_analyzer::syn::yp_reader::read_yalpar;
 use syntax_analyzer::view::print_table;
+use syntax_analyzer::syn::parsing_slr::slr_parsing;
+use syntax_analyzer::utility::prod_transform::flatten_productions;
+
 fn main(){
     // 1. Source Grammar
     let filename = "./grammar/parser.yalp";
@@ -45,15 +48,42 @@ fn main(){
         goto
     ) = slr.build_parsing_table(&follows);
 
-    let rslt = print_table::print_parse_table(
+    // println!("Action: {:?}", action);
+    // println!("Goto: {:?}", goto);
+
+    let _rslt = print_table::print_parse_table(
         slr.icount, 
         grammar.terminals, 
         grammar.non_terminals,
         &action,
         &goto,
     "graph/parse_table.txt");
-    if rslt.is_ok(){
-        panic!("Error generating table")
+    // if rslt.is_ok(){
+    //     panic!("Error generating table")
+    // } 
+
+    // 6. Input para analizar
+    let input: Vec<String> = vec![
+        "TOKEN_SENTENCE".to_string(),
+        "TOKEN_AND".to_string(),
+        "TOKEN_SENTENCE".to_string()
+    ];
+
+    // 7. Análisis SLR
+    let flat_productions = flatten_productions(&grammar.productions);
+    let parsing_steps = slr_parsing(
+        &action,
+        &goto,
+        &flat_productions,
+        input
+    );
+
+    // 8. Mostrar resultados
+    for step in &parsing_steps {
+        println!(
+            "{:<30} {:<30} {}",
+            step.stack, step.input, step.action
+        );
     }
 }
 
