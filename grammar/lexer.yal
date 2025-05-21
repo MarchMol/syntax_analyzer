@@ -1,0 +1,30 @@
+{
+    use syntax_analyzer::syn::first_follow;
+    use syntax_analyzer::syn::slr_automata;
+    use syntax_analyzer::view::render;
+    use syntax_analyzer::syn::yp_reader::read_yalpar;
+    use syntax_analyzer::view::print_table;
+}
+(* 1. Var definition: *)
+    (* Numbers *)
+
+let digit = [0-9]                  
+let integer = "-"?digit+
+let float = "-"?(digit"."(digit*))
+
+(* Words *)
+let letter = ([a-z]|[A-Z])
+
+(* Extra *)
+let ws = (" "|"\n"|"\t"|"\s")+
+
+(* 2. Rules *)
+rule gettoken =
+    integer                           { return "INT"; }
+    | float                           { return "FLOAT";}
+    | float("e"|"E")integer           { return "SCINOT";}
+    | "while"                         { return "WHILE"; }
+    | "if"                            { return "IF"; }
+    | "ignoreMe"                      { }
+    | letter(letter|"_")*             { return "ID"; }
+    | ws                              { return "WS"; }

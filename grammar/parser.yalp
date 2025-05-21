@@ -1,6 +1,5 @@
 
-/* Definicion de parser */
-
+* Definicion de parser */
 /* seccion de tokens */
 
 %token TOKEN_SENTENCE
@@ -27,4 +26,4 @@ Q:
     TOKEN_L_BRACE S TOKEN_R_BRACE
     | TOKEN_SENTENCE
 ;
-/* finaliza seccion de producciones */
+/* finaliza seccion de producciones *//
