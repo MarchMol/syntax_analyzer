@@ -2,6 +2,10 @@ pub mod utility{
     pub mod reader;
 }
 
+pub mod lex{
+    pub mod yl_reader;
+}
+
 pub mod syn{
     pub mod yp_reader;
     pub mod slr_automata;
