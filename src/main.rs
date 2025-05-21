@@ -5,6 +5,7 @@ use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
 use syntax_analyzer::syn::yp_reader::read_yalpar;
 use syntax_analyzer::view::print_table;
+
 fn main(){
     // 1. Source Grammar
     let filename = "./grammar/parser.yalp";
@@ -39,22 +40,41 @@ fn main(){
 
     render::render_png(&slr);
 
-    // 5. Parsing
+    // 5. Parsing Table
     let (
         action, 
         goto
     ) = slr.build_parsing_table(&follows);
 
-    let rslt = print_table::print_parse_table(
+    let _rslt = print_table::print_parse_table(
         slr.icount, 
         grammar.terminals, 
         grammar.non_terminals,
         &action,
         &goto,
     "graph/parse_table.txt");
-    if rslt.is_ok(){
-        panic!("Error generating table")
-    }
+    // if rslt.is_ok(){
+    //     panic!("Error generating table")
+    // } 
+
+    // 6. Input para analizar
+    let tokens = vec![
+        "TOKEN_SENTENCE".to_string(),
+        "TOKEN_AND".to_string(),
+        "TOKEN_SENTENCE".to_string()
+    ];
+
+    // 7. Análisis SLR
+    let steps = slr.parse(
+        &tokens,
+        &action,
+        &goto,
+    );
+
+    let _steps_rslt = print_table::print_parse_steps(
+        &steps,
+        "graph/parsing_steps.txt"
+    );
 }
 
 

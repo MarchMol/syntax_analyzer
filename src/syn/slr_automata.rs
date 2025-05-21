@@ -8,6 +8,12 @@ pub type GotoTable = HashMap<(u8, String), u8>;
 
 use std::iter::Peekable;
 
+pub struct ParsingStep {
+    pub stack: String,
+    pub input: String,
+    pub action: String,
+}
+
 #[derive(Eq, Hash, Debug, PartialEq, Clone)]
 pub enum Element {
     Terminal(String),
@@ -361,9 +367,11 @@ impl SLR {
         tokens: &[String],
         action: &HashMap<(u8, String), String>,
         goto: &HashMap<(u8, String), u8>,
-    ) -> bool {
+    ) -> Vec<ParsingStep> {
+        let mut steps = Vec::new();
         let mut stack: Vec<u8> = vec![0];
-        let mut had_error = false;
+        let mut symbols: Vec<String> = vec![];
+        let mut _had_error = false;
         let mut input: Peekable<_> = tokens
             .iter()
             .cloned()
@@ -372,11 +380,15 @@ impl SLR {
         let sync_set: HashSet<&str> = ["$", "]"].iter().cloned().collect();
 
         // Verificación inicial para tokens inválidos en estado 0
-        if let Some(first_token) = input.peek() {
+        if let Some(first_token) = input.peek().cloned() {
             let initial_key = (0, first_token.clone());
             if !action.contains_key(&initial_key) && !goto.contains_key(&initial_key) {
-                eprintln!("Invalid initial token '{}'", first_token);
-                return false;
+                steps.push(ParsingStep {
+                    stack: format!("{:?} {:?}", stack, symbols),
+                    input: input.clone().collect::<Vec<_>>().join(" "),
+                    action: format!("Invalid initial token '{}'", first_token),
+                });
+                return steps;
             }
         }
 
@@ -385,19 +397,38 @@ impl SLR {
             let lookahead = input.peek().unwrap().clone();
             let key = (state, lookahead.clone());
 
+            let stack_str = format!("{:?} {:?}", stack, symbols);
+            let input_str = input.clone().collect::<Vec<_>>().join(" ");
+
             match action.get(&key).map(String::as_str) {
-                Some("acc") => return !had_error,
+                Some("acc") => {
+                    steps.push(ParsingStep {
+                        stack: stack_str,
+                        input: input_str,
+                        action: "ACCEPTANCE".to_string(),
+                    });
+                    break;
+                },
                 Some(s) if s.starts_with('s') => {
                     let next_st: u8 = s[1..].parse().unwrap();
                     stack.push(next_st);
+                    symbols.push(lookahead.clone());
                     input.next();
+                    steps.push(ParsingStep {
+                        stack: stack_str,
+                        input: input_str,
+                        action: format!("Shift {}", next_st),
+                    });
                 }
                 Some(r) if r.starts_with('r') => {
                     let prod_id: u8 = r[1..].parse().unwrap();
-                    let rhs_len = self.productions[&prod_id].len() - 1;
-                    stack.truncate(stack.len() - rhs_len);
+                    let rhs_len = self.productions[&(prod_id)].len() - 1;
+                    for _ in 0..rhs_len {
+                        stack.pop();
+                        symbols.pop();
+                    }
                     let top = *stack.last().unwrap();
-                    let lhs = if let Element::NonTerminal(nt) = &self.productions[&prod_id][0] {
+                    let lhs = if let Element::NonTerminal(nt) = &self.productions[&(prod_id)][0] {
                         nt.clone()
                     } else {
                         unreachable!()
@@ -406,29 +437,45 @@ impl SLR {
                     let goto_st = match goto.get(&goto_key) {
                         Some(&st) => st,
                         None => {
-                            eprintln!(
-                                "Error: no GOTO entry for state {} and non-terminal '{}'",
-                                top, lhs
-                            );
-                            return false;
+                            steps.push(ParsingStep {
+                                stack: stack_str,
+                                input: input_str,
+                                action: format!("Error: no GOTO for ({}, {})", top, lhs),
+                            });
+                            return steps;
                         }
                     };
                     stack.push(goto_st);
+                    symbols.push(lhs.clone());
+
+                    steps.push(ParsingStep {
+                        stack: stack_str,
+                        input: input_str,
+                        action: format!("r{}: {} -> {:?}", prod_id, lhs, &self.productions[&(prod_id)][1..]),
+                    });
                 }
                 _ => {
-                    eprintln!("Syntax error at state {}, token '{}'", state, lookahead);
-                    had_error = true;
+                    _had_error = true;
+                    steps.push(ParsingStep {
+                        stack: stack_str.clone(),
+                        input: input_str.clone(),
+                        action: format!("Syntax error at ({}, '{}')", state, lookahead),
+                    });
 
                     // Si el token actual no es sincronizador y no es el fin de entrada
                     if !sync_set.contains(lookahead.as_str()) && lookahead != "$" {
-                        eprintln!("Skipping invalid token '{}'", lookahead);
+                        steps.push(ParsingStep {
+                            stack: stack_str,
+                            input: input_str,
+                            action: format!("Skipping invalid token '{}'", lookahead),
+                        });
                         input.next();
                         continue;
                     }
 
                     // Si llegamos al fin de entrada con errores, fallamos
                     if lookahead == "$" {
-                        return false;
+                        break;
                     }
 
                     // Intentamos recuperar en el token de sincronización
@@ -444,14 +491,22 @@ impl SLR {
                             }
                         }
                         stack.pop();
+                        symbols.pop();
                     }
 
                     if !can_recover {
-                        return false;
+                        steps.push(ParsingStep {
+                            stack: format!("{:?} {:?}", stack, symbols),
+                            input: input.clone().collect::<Vec<_>>().join(" "),
+                            action: "Error: cannot recover".to_string(),
+                        });
+                        break;
                     }
                 }
             }
         }
+
+        steps
     }
 }
 

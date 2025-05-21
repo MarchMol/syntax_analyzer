@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use crate::syn::slr_automata::ParsingStep;
 
 use prettytable::{row, Cell, Table};
 use std::fs::File;
@@ -75,4 +76,38 @@ pub fn print_parse_table(
 
     Ok(())
 
+}
+
+pub fn print_parse_steps(
+    steps: &[ParsingStep],
+    filename: &str
+) -> std::io::Result<()> {
+    let mut table = Table::new();
+
+    // Encabezado
+    table.add_row(row!["STACK", "INPUT", "ACTION"]);
+
+    for step in steps {
+        table.add_row(row![
+            step.stack.clone(),
+            step.input.clone(),
+            step.action.clone()
+        ]);
+    }
+
+    let path = Path::new(filename);
+
+    // Crear carpeta si no existe
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Crear archivo
+    let mut file = File::create(path)?;
+
+    // Imprimir la tabla en el archivo
+    table.print(&mut file)?;
+
+    println!("Parsing steps written to {:?}", path);
+    Ok(())
 }
