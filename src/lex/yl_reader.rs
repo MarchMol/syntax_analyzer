@@ -6,6 +6,7 @@ use crate::{utility::reader::read_lines};
 pub struct LexerData{
     pub merged: String,
     pub actions: HashMap<usize, String>,
+    pub imports: Vec<String>,
 }
 
 #[derive(Eq, Hash, Debug, PartialEq, Clone)]
@@ -122,7 +123,6 @@ fn contains_var(reg_og: String)->(bool,usize, usize){
 }
 
 fn replace_vars(og_reg: String, vars: &HashMap<String, LexemVar>)->String{
-    println!("Starting: {}",og_reg);
     let mut new_reg = og_reg.clone();
     loop{
         let contains = contains_var(new_reg.clone());
@@ -212,7 +212,7 @@ fn encode_rule(rule: Vec<String>, vars: &HashMap<String, LexemVar>)->Vec<Lexem>{
     rule_vec
 }
 
-fn genereate_action_table(rules: &Vec<Lexem>)->LexerData{
+fn genereate_action_table(rules: &Vec<Lexem>, imports: Vec<String>)->LexerData{
     let mut merged = String::new();
     let mut actions: HashMap<usize, String> = HashMap::new();
     
@@ -221,11 +221,11 @@ fn genereate_action_table(rules: &Vec<Lexem>)->LexerData{
         actions.insert(r.id, r.action.clone());
     }
     merged.pop();
-    println!("{}",merged);
 
     LexerData{
         merged,
-        actions
+        actions,
+        imports
     }
 }
 
@@ -277,7 +277,7 @@ pub fn read_yalex(filename:&str)->LexerData{
     // for v in rule_vec{
     //     println!("ID: {}, Reg: {}, action: {},",v.id, v.regex, v.action);
     // }
-    let lexdata = genereate_action_table(&rule_vec);
+    let lexdata = genereate_action_table(&rule_vec, header);
     lexdata
 
 }
