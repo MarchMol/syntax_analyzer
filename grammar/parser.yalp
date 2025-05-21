@@ -1,5 +1,5 @@
 
-* Definicion de parser */
+/* Definicion de parser */
 /* seccion de tokens */
 
 %token TOKEN_SENTENCE
