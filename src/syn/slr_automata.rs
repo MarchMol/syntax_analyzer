@@ -339,10 +339,8 @@ impl SLR {
         }
 
         // 2) Reduce: para cada estado final (no-accept) y cada a ∈ FOLLOW(head)
-        println!("==================== Finish States (for reduce) ====================");
         for &(state, prod_id) in &self.finish_states {
             // cabeza de la producción
-            println!("State {}, r{} => {:?}", state, prod_id, self.productions.get(&prod_id));
             let head = if let Element::NonTerminal(ref nt) = self.productions[&prod_id][0] {
                 nt.clone()
             } else {
