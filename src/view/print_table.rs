@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use crate::syn::parsing_slr::ParsingStep;
+use crate::syn::slr_automata::ParsingStep;
 
 use prettytable::{row, Cell, Table};
 use std::fs::File;

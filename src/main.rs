@@ -5,8 +5,6 @@ use syntax_analyzer::syn::slr_automata;
 use syntax_analyzer::view::render;
 use syntax_analyzer::syn::yp_reader::read_yalpar;
 use syntax_analyzer::view::print_table;
-use syntax_analyzer::syn::parsing_slr::slr_parsing;
-use syntax_analyzer::utility::prod_transform::flatten_productions;
 
 fn main(){
     // 1. Source Grammar
@@ -42,14 +40,11 @@ fn main(){
 
     render::render_png(&slr);
 
-    // 5. Parsing
+    // 5. Parsing Table
     let (
         action, 
         goto
     ) = slr.build_parsing_table(&follows);
-
-    // println!("Action: {:?}", action);
-    // println!("Goto: {:?}", goto);
 
     let _rslt = print_table::print_parse_table(
         slr.icount, 
@@ -63,24 +58,21 @@ fn main(){
     // } 
 
     // 6. Input para analizar
-    let input: Vec<String> = vec![
+    let tokens = vec![
         "TOKEN_SENTENCE".to_string(),
         "TOKEN_AND".to_string(),
         "TOKEN_SENTENCE".to_string()
     ];
 
     // 7. Análisis SLR
-    let flat_productions = flatten_productions(&grammar.productions);
-    let parsing_steps = slr_parsing(
+    let steps = slr.parse(
+        &tokens,
         &action,
         &goto,
-        &flat_productions,
-        input
     );
 
-    // 8. Mostrar resultados
     let _steps_rslt = print_table::print_parse_steps(
-        &parsing_steps,
+        &steps,
         "graph/parsing_steps.txt"
     );
 }
