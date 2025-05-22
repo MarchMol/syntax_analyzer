@@ -402,31 +402,36 @@ impl SLR {
         tokens: &[String],
         action: &HashMap<(u8, String), String>,
         goto: &HashMap<(u8, String), u8>,
-    ) -> Vec<ParsingStep> {
+    ) -> (Vec<ParsingStep>, Option<(String, String)>) {
         let mut steps = Vec::new();
         let mut stack: Vec<u8> = vec![0];
         let mut symbols: Vec<String> = vec![];
-        let mut _had_error = false;
+        let original_tokens: Vec<String> = tokens.iter().cloned().collect();
         let mut input: Peekable<_> = tokens
             .iter()
             .cloned()
             .chain(std::iter::once("$".to_string()))
             .peekable();
-        let sync_set: HashSet<&str> = ["$", "]"].iter().cloned().collect();
 
         // Verificación inicial para tokens inválidos en estado 0
         if let Some(first_token) = input.peek().cloned() {
             let initial_key = (0, first_token.clone());
             if !action.contains_key(&initial_key) && !goto.contains_key(&initial_key) {
+                let error_index = 0;
+                let error_msg = highlight_error_token(&original_tokens, error_index);
+                let detailed_msg = format!("Invalid initial token '{}'", first_token);
+
                 steps.push(ParsingStep {
                     stack: format!("{:?} {:?}", stack, symbols),
                     input: input.clone().collect::<Vec<_>>().join(" "),
-                    action: format!("Invalid initial token '{}'", first_token),
+                    action: detailed_msg.clone(),
                 });
-                return steps;
+
+                return (steps, Some((error_msg_with_arrow(error_msg, error_index, &original_tokens), detailed_msg)));
             }
         }
 
+        let mut tokens_consumed = 0;
         loop {
             let state = *stack.last().unwrap();
             let lookahead = input.peek().unwrap().clone();
@@ -449,6 +454,7 @@ impl SLR {
                     stack.push(next_st);
                     symbols.push(lookahead.clone());
                     input.next();
+                    tokens_consumed += 1;
                     steps.push(ParsingStep {
                         stack: stack_str,
                         input: input_str,
@@ -472,12 +478,17 @@ impl SLR {
                     let goto_st = match goto.get(&goto_key) {
                         Some(&st) => st,
                         None => {
+                            let detailed_msg = format!("Error: no GOTO for ({}, {})", top, lhs);
+                            let error_index = tokens_consumed;
+                            let error_msg = highlight_error_token(&original_tokens, error_index);
+
                             steps.push(ParsingStep {
                                 stack: stack_str,
                                 input: input_str,
-                                action: format!("Error: no GOTO for ({}, {})", top, lhs),
+                                action: detailed_msg.clone(),
                             });
-                            return steps;
+
+                            return (steps, Some((error_msg_with_arrow(error_msg, error_index, &original_tokens), detailed_msg)));
                         }
                     };
                     stack.push(goto_st);
@@ -490,58 +501,22 @@ impl SLR {
                     });
                 }
                 _ => {
-                    _had_error = true;
+                    let detailed_msg = format!("Syntax error at ({}, '{}')", state, lookahead);
+                    let error_index = tokens_consumed;
+                    let error_msg = highlight_error_token(&original_tokens, error_index);
+
                     steps.push(ParsingStep {
                         stack: stack_str.clone(),
                         input: input_str.clone(),
-                        action: format!("Syntax error at ({}, '{}')", state, lookahead),
+                        action: detailed_msg.clone(),
                     });
 
-                    // Si el token actual no es sincronizador y no es el fin de entrada
-                    if !sync_set.contains(lookahead.as_str()) && lookahead != "$" {
-                        steps.push(ParsingStep {
-                            stack: stack_str,
-                            input: input_str,
-                            action: format!("Skipping invalid token '{}'", lookahead),
-                        });
-                        input.next();
-                        continue;
-                    }
-
-                    // Si llegamos al fin de entrada con errores, fallamos
-                    if lookahead == "$" {
-                        break;
-                    }
-
-                    // Intentamos recuperar en el token de sincronización
-                    let sync_token = lookahead;
-                    let mut can_recover = false;
-
-                    while stack.len() > 1 {
-                        let top_state = *stack.last().unwrap();
-                        if let Some(action_str) = action.get(&(top_state, sync_token.clone())) {
-                            if action_str.starts_with('s') {
-                                can_recover = true;
-                                break;
-                            }
-                        }
-                        stack.pop();
-                        symbols.pop();
-                    }
-
-                    if !can_recover {
-                        steps.push(ParsingStep {
-                            stack: format!("{:?} {:?}", stack, symbols),
-                            input: input.clone().collect::<Vec<_>>().join(" "),
-                            action: "Error: cannot recover".to_string(),
-                        });
-                        break;
-                    }
+                    return (steps, Some((error_msg_with_arrow(error_msg, error_index, &original_tokens), detailed_msg)));
                 }
             }
         }
 
-        steps
+        (steps, None)
     }
 }
 
@@ -551,4 +526,37 @@ pub fn are_equal(a: &Vec<(u8, u8)>, b: &Vec<(u8, u8)>) -> bool {
     a_sorted.sort_unstable(); // tuples implement Ord
     b_sorted.sort_unstable();
     a_sorted == b_sorted
+}
+
+fn highlight_error_token(tokens: &[String], error_index: usize) -> String {
+    let mut result = String::new();
+    for (i, token) in tokens.iter().enumerate() {
+        if i == error_index {
+            // ANSI rojo brillante
+            result.push_str(&format!("\x1b[31m{}\x1b[0m ", token));
+        } else {
+            result.push_str(&format!("{} ", token));
+        }
+    }
+    result.trim_end().to_string()
+}
+
+fn compute_token_offset(tokens: &[String], error_index: usize) -> usize {
+    let mut offset = 0;
+    for (i, token) in tokens.iter().enumerate() {
+        if i == error_index {
+            break;
+        }
+        offset += token.len() + 1;
+    }
+    offset
+}
+
+fn error_msg_with_arrow(error_msg: String, error_index: usize, tokens: &[String]) -> String {
+    format!(
+        "\n\x1b[1;31mParsing Error:\x1b[0m\n{}\n{:>width$}↑ here",
+        error_msg,
+        "",
+        width = compute_token_offset(tokens, error_index)
+    )
 }

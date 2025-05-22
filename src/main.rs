@@ -85,13 +85,17 @@ fn syn_flow(){
 
     // 6. Input para analizar
     let tokens = vec![
+        "TOKEN_L_BRACE".to_string(),
         "TOKEN_SENTENCE".to_string(),
+        "TOKEN_OR".to_string(),
+        "TOKEN_SENTENCE".to_string(),
+        "TOKEN_R_BRACE".to_string(),
         "TOKEN_AND".to_string(),
         "TOKEN_SENTENCE".to_string()
     ];
 
     // 7. Análisis SLR
-    let steps = slr.parse(
+    let (steps, error_msg) = slr.parse(
         &tokens,
         &action,
         &goto,
@@ -101,6 +105,11 @@ fn syn_flow(){
         &steps,
         "graph/parsing_steps.txt"
     );
+
+    if let Some((visual_msg, detailed_msg)) = error_msg {
+        println!("{}", visual_msg);
+        println!("{}", detailed_msg);
+    };
 }
 
 
