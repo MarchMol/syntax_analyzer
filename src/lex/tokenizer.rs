@@ -146,7 +146,7 @@ fn expand(tokens: &Vec<Token>)->Vec<Token>{
             Token::Literal(_c)|Token::Range(_c,_)=>{
                 queue.push_back(tk.clone());
             }
-            Token::Tokener(ref s) => {
+            Token::Tokener(ref _s) => {
                 queue.push_back(tk.clone());
             },
             Token::Sentinel | Token::RParen | Token::LParen=>{
@@ -234,7 +234,7 @@ fn shunting_yard(tokens: Vec<Token>)->VecDeque<Token>{
             Token::Literal(_c) | Token::Range(_c, _) => {
                 queue.push_back(tk);
             },
-            Token::Tokener(ref s) => {
+            Token::Tokener(ref _s) => {
                 queue.push_back(tk);
             },
             Token::LParen | Token::Empty=>{

@@ -20,6 +20,7 @@ pub enum Element {
     NonTerminal(String),
 }
 
+#[derive(Debug)]
 pub struct SLR {
     // State id -> State name
     pub icount: u8,
@@ -39,28 +40,31 @@ pub struct SLR {
     pub acceptance_states: HashSet<u8>,
 
     // Production Id -> Array of elements
-    productions: HashMap<u8, Vec<Element>>,
+    pub productions: HashMap<u8, Vec<Element>>,
 
     // Given an Element, what productions is it the head of?
     heads: HashMap<Element, HashSet<u8>>,
-
-    // How many productions are there?
-    pcount: u8,
 }
 
 impl SLR {
-    pub fn new(productions: &HashMap<String, Vec<Vec<String>>>, terminals: &HashSet<String>) -> Self {
+    pub fn new(
+        productions: &HashMap<String, Vec<Vec<String>>>, 
+        terminals: &HashSet<String>, 
+        init_symbol: &String
+    ) -> Self {
+        // Extend Grammar
         let mut heads: HashMap<Element, HashSet<u8>> = HashMap::new();
         let mut fprods: HashMap<u8, Vec<Element>> = HashMap::new();
         fprods.insert(
             0,
             Vec::from([
                 Element::NonTerminal("S\'".to_string()),
-                Element::NonTerminal("S".to_string()),
+                Element::NonTerminal(init_symbol.clone()),
             ]),
         );
         heads.insert(Element::NonTerminal("S\'".to_string()), HashSet::from([0]));
 
+        //
         let mut counter = 1;
         let mut keys: Vec<_> = productions.keys().cloned().collect();
         keys.sort();
@@ -94,7 +98,6 @@ impl SLR {
             acceptance_states: HashSet::new(),
             finish_states: HashSet::new(),
             productions: fprods,
-            pcount: counter,
             current_generation: HashSet::new(),
             heads,
         }
@@ -195,28 +198,60 @@ impl SLR {
     pub fn generate(&mut self) {
         // State 0
         let mut i0_content: Vec<(u8, u8)> = Vec::new();
-        for i in 0..self.pcount {
-            i0_content.push((i, 0));
+        i0_content.push((0,0));
+        let mut is_closed: Vec<Element> = Vec::new();
+        let mut counter = 0;
+        loop {
+
+            let mut to_close = self.requires_closure(&i0_content);
+            to_close.retain(|x| !is_closed.contains(x));
+            if counter>self.heads.len(){
+                panic!("~ Error SLR: Stuck in infinite loop trying to apply closure to: {:?}",to_close);
+            }
+
+                    // No closure necessary
+            if to_close.is_empty() {
+                        // println!("Finished closures!!");
+                break;
+            }
+                    // Close all
+            for tc in to_close {
+                if let Some(to_add) = self.heads.get(&tc) {
+                            // println!("{:?} leads to => {:?}",tc,to_add);
+                    for ta in to_add {
+                        if !i0_content.contains(&(*ta, 0)) {
+                            i0_content.push((*ta, 0));
+                        }
+                    }
+                    is_closed.push(tc);
+                            // println!(" ** now its {:?}",state_const);
+                }
+            }
+            counter+=1;
         }
+
+
         self.contents.insert(0, i0_content);
 
         // first layer
         self.calculate_w_generation(Vec::from([0]));
         while !self.current_generation.is_empty() {
+            print!("\rGeneration num: {}", &self.current_generation.len());
             let mut sorted_vec: Vec<u8> = self.current_generation.iter().cloned().collect();
             sorted_vec.sort_by(|a, b| a.cmp(b));
             self.current_generation.clear();
             self.calculate_w_generation(sorted_vec);
         }
+        println!("");
 
         // show finish & acceptance
-        println!("Finish states: {:?}", self.finish_states);
-        println!("Acceptance states: {:?}", self.acceptance_states);
+        // println!("Finish states: {:?}", self.finish_states);
+        // println!("Acceptance states: {:?}", self.acceptance_states);
 
         // <<< NUEVA SECCIÓN: imprimir todos los estados >>>
         for state_id in 0..=self.icount {
-            let dump = self.print_state(state_id);
-            println!("{}", dump);
+            let _dump = self.print_state(state_id);
+            // println!("{}", dump);
         }
     }
 
@@ -292,7 +327,7 @@ impl SLR {
                         }
                     }
                 }
-                println!("{:?}", state_const);
+                // println!("{:?}", state_const);
                 // 3. Does it compare to other states?
                 // Check if it exists
                 let mut exists: Option<u8> = None;
@@ -312,7 +347,7 @@ impl SLR {
                     self.current_generation.insert(new_id);
                     self.add_edge(last_id, new_id, trans.0.clone());
                 }
-                print!("\n");
+                // print!("\n");
             }
         }
     }

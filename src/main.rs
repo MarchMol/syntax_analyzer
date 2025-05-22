@@ -1,35 +1,33 @@
 
-use std::fs::File;
-use std::io::Write;
-use syntax_analyzer::lex::lex_analyzer::LexAnalyzer;
+// use std::fs::File;
+// use std::io::Write;
+// use syntax_analyzer::lex::lex_analyzer::LexAnalyzer;
 use syntax_analyzer::syn::first_follow;
 use syntax_analyzer::syn::slr_automata;
-use syntax_analyzer::syn::syn_analyzer::SynAnalyzer;
+// use syntax_analyzer::syn::syn_analyzer::SynAnalyzer;
 use syntax_analyzer::view::render;
 use syntax_analyzer::syn::yp_reader::read_yalpar;
 use syntax_analyzer::view::print_table;
-use ron::ser::{to_string_pretty, PrettyConfig};
+// use ron::ser::{to_string_pretty, PrettyConfig};
 fn main(){
-    full_flow();
+    syn_flow();
 }
 
-fn full_flow(){ 
-    // Lexer
-
-    let l_filename = "./grammar/lexer.yal";
-    let la_raw = LexAnalyzer::generate(l_filename);
-    let la_serialized = to_string_pretty(&la_raw, PrettyConfig::default()).unwrap();
-    let mut l_file = File::create("./src/bin/lex_analyzer.ron").unwrap();
-    l_file.write_all(la_serialized.as_bytes()).unwrap();
+// fn full_flow(){ 
+//     // Lexer
+//     let l_filename = "./grammar/lexer.yal";
+//     let la_raw = LexAnalyzer::generate(l_filename);
+//     let la_serialized = to_string_pretty(&la_raw, PrettyConfig::default()).unwrap();
+//     let mut l_file = File::create("./src/bin/lex_analyzer.ron").unwrap();
+//     l_file.write_all(la_serialized.as_bytes()).unwrap();
     
-    // Syntaxer
-    let s_filename = "./grammar/parser.yalp";
-    let sa_raw = SynAnalyzer::generate(s_filename);
-    let sa_serialized = to_string_pretty(&sa_raw, PrettyConfig::default()).unwrap();
-    let mut s_file = File::create("./src/bin/sy_analyzer.ron").unwrap();
-    s_file.write_all(sa_serialized.as_bytes()).unwrap();
-
-}
+//     // Syntaxer
+//     let s_filename = "./grammar/test_grammar.yalp";
+//     let sa_raw = SynAnalyzer::generate(s_filename, false);
+//     let sa_serialized = to_string_pretty(&sa_raw, PrettyConfig::default()).unwrap();
+//     let mut s_file = File::create("./src/bin/syn_analyzer.ron").unwrap();
+//     s_file.write_all(sa_serialized.as_bytes()).unwrap();
+// }
 
 fn syn_flow(){
     // 1. Source Grammar
@@ -60,7 +58,8 @@ fn syn_flow(){
     // 4. SLR
     let mut slr = slr_automata::SLR::new(
         &grammar.productions, 
-        &grammar.terminals);
+        &grammar.terminals,
+        &grammar.init_symbol);
     slr.generate();
 
     render::render_png(&slr);

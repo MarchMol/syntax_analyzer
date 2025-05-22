@@ -1,26 +1,17 @@
-use std::clone;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
-use std::collections::BTreeMap;
-
 use crate::lex::grammar_tree::{Tree, TreeNode};
 use crate::lex::tokenizer::Token;
 
 
 pub struct DirectAFD {
     syntax_tree: Rc<Tree>,
-    followpos: HashMap<usize, HashSet<usize>>,
-    states: Vec<HashSet<usize>>,
-    transitions: HashMap<(usize, char), usize>,
 }
 
 impl DirectAFD {
     pub fn new(tree: Rc<Tree>) -> Self {
         Self {
-            syntax_tree: tree,
-            followpos: HashMap::new(),
-            states: Vec::new(),
-            transitions: HashMap::new(),
+            syntax_tree: tree
         }
     }
 

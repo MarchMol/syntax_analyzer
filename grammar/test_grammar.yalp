@@ -1,0 +1,57 @@
+
+/* Token assign */
+%token SEMICOLON
+%token ASSIGN
+%token ID
+%token INT
+%token FLOAT
+%token SCINOT
+%token WHILE
+%token IF
+%token LPAREN
+%token RPAREN
+%token EQUAL
+%token LBRACKET
+%token RBRACKET
+%token RETURN
+IGNORE WS
+
+%%
+/* producciones */
+S: 
+    X X
+;
+X:  
+    A SEMICOLON
+    | B SEMICOLON
+;
+
+A:  
+    V ASSIGN L
+;
+
+V:
+    ID
+;
+L:  
+    INT
+    | FLOAT
+    | SCINOT
+    | STRING
+;
+B:  
+    B F
+    | C E
+;
+C:  
+    IF
+    | WHILE
+;
+E: 
+    LPAREN E RPAREN
+    | V EQUAL L
+;
+F: 
+    LBRACKET F RBRACKET
+    | RETURN L SEMICOLON
+;

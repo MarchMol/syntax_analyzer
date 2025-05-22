@@ -65,7 +65,7 @@ fn process_production(
             break;
         }
     }
-    println!("Head: {:?}",head);
+    // println!("Head: {:?}",head);
     if !non_terminals.contains(&head){
         non_terminals.insert(head.clone());
     }
@@ -90,7 +90,7 @@ fn process_production(
         }
         prod_vec.push(tem_string);
     }
-    println!("Prods: {:?}", prod_vec);
+    // println!("Prods: {:?}", prod_vec);
     // Return
     (head,prod_vec)
 }

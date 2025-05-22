@@ -1,5 +1,4 @@
 use std::{collections::HashMap, hash::Hash};
-
 use crate::{utility::reader::read_lines};
 
 
@@ -19,6 +18,37 @@ pub struct Lexem{
     pub id: usize,
     pub regex: String,
     pub action: String,
+}
+
+fn clean_rules(rules: &Vec<Lexem>)->Vec<Lexem>{
+    fn clean(reg: String)->String{
+        let mut reg_copy = reg.chars().peekable();
+        let mut new_reg = String::new();
+        while let Some(c) = reg_copy.next(){
+            if c == '\\'{
+                if let Some(c_next) = reg_copy.peek(){
+                    new_reg.push('\\');
+                    new_reg.push(*c_next);
+                    reg_copy.next();
+                }
+            } else {
+                if c != '"'{
+                    new_reg.push(c);
+                }
+            }
+        }
+        
+        
+        new_reg
+    }
+    let mut new_rules: Vec<Lexem> = Vec::new();
+
+    for l in rules{
+        new_rules.push(
+            Lexem { id: l.id, regex: clean(l.regex.clone()), action: l.action.clone() }
+        );
+    }
+    new_rules
 }
 
 fn trim_ws(content: String)->String{
@@ -84,6 +114,7 @@ fn contains_var(reg_og: String)->(bool,usize, usize){
     let mut has_var = false;
     let mut start: usize = 0;
     let mut end: usize = 0;
+    let mut last_char: char = '0';
     for (i,ch) in reg.chars().enumerate(){
         if !operations.contains(&ch){
             if ch=='['{
@@ -92,8 +123,10 @@ fn contains_var(reg_og: String)->(bool,usize, usize){
             else if ch==']'{
                 is_range = false;
             }
-            else if ch == '\"'{
-                is_literal = !is_literal;
+            else if ch == '"'{
+                if last_char != '\\'{
+                    is_literal = !is_literal;
+                }  
             }
             else{
                 if !is_range && !is_literal{
@@ -103,6 +136,7 @@ fn contains_var(reg_og: String)->(bool,usize, usize){
                 }
             }
         }
+        last_char = ch;
     }
     reg.drain(..start);
     if !has_var{
@@ -136,7 +170,7 @@ fn replace_vars(og_reg: String, vars: &HashMap<String, LexemVar>)->String{
                     tem+= &new_reg[contains.2..];
                     new_reg = tem.clone();
                 } else {
-                    panic!("~ Error Lex: var not found {}",sus);
+                    panic!("~ Error Lex: var not found in middle {}",sus);
                 }
             } else {
                 let sus = &new_reg[contains.1..];
@@ -146,7 +180,7 @@ fn replace_vars(og_reg: String, vars: &HashMap<String, LexemVar>)->String{
                     tem+= &sus_r.regex;
                     new_reg = tem.clone();
                 } else {
-                    panic!("~ Error Lex: var not found {}",sus);
+                    panic!("~ Error Lex: var not found at start or end {}",sus);
                 }
             }
         } else {
@@ -273,8 +307,9 @@ pub fn read_yalex(filename:&str)->LexerData{
     //     println!("Name: {}, Reg: {}",k,v.regex);
     // }
     // 3. Encode Rules
-    let rule_vec = encode_rule(rule, &var_vec);
-    // for v in rule_vec{
+    let rule_vec = clean_rules(
+        &encode_rule(rule, &var_vec));
+    // for v in &rule_vec{
     //     println!("ID: {}, Reg: {}, action: {},",v.id, v.regex, v.action);
     // }
     let lexdata = genereate_action_table(&rule_vec, header);

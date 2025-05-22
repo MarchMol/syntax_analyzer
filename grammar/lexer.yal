@@ -21,10 +21,18 @@ let ws = (" "|"\n"|"\t"|"\s")+
 (* 2. Rules *)
 rule gettoken =
     integer                           { return "INT"; }
-    | float                           { return "FLOAT";}
-    | float("e"|"E")integer           { return "SCINOT";}
-    | "while"                         { return "WHILE"; }
+    | float                           { return "FLOAT"; }
+    | float("e"|"E")integer           { return "SCINOT"; }
+    | "return"                        { return "RETURN"; }
     | "if"                            { return "IF"; }
     | "ignoreMe"                      { }
-    | letter(letter|"_")*             { return "ID"; }
+    | "\""(letter*)"\""                    { return "STRING"; }
+    | "="                             { return "ASIGN"; }
+    | "=="                            { return "EQUAL"; }
+    | "\{"                             { return "LBRACKET"; }
+    | "\}"                             { return "RBRACKET"; }
+    | "\("                             { return "LPAREN"; }
+    | "\)"                             { return "RPAREN"; }
+    | ";"                             { return "SEMICOLON"; }
+    | letter(letter|digit|"_")*       { return "ID"; }
     | ws                              { return "WS"; }

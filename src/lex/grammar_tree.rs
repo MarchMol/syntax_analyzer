@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::{Rc, Weak}, sync::mpsc::TryRecvError};
+use std::rc::Rc;
 use super::tokenizer::Token;
 
 
@@ -60,7 +60,7 @@ impl Tree{
 
         for tk in tokens{
             match tk{
-                Token::Literal(c) | Token::Range(c,_)=>{
+                Token::Literal(_c) | Token::Range(_c,_)=>{
                     let newnode = TreeNode{
                         value: tk, 
                         left: None,

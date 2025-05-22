@@ -19,7 +19,7 @@ pub fn minimize_dfa(
     let sink = '?';
     let mut complete = dfa.clone();
     complete.entry(sink).or_default();
-    for (&state, trans) in dfa {
+    for (&state, _) in dfa {
         let row = complete.entry(state).or_default();
         for sym in &alphabet {
             row.entry(sym.clone()).or_insert(sink);
@@ -33,61 +33,61 @@ pub fn minimize_dfa(
     let all_states: HashSet<char> = complete.keys().cloned().collect();
     let f = accept_states.clone();
     let non_f: HashSet<char> = all_states.difference(&f).cloned().collect();
-    let mut P = Vec::new();
+    let mut p = Vec::new();
     if !f.is_empty() {
-        P.push(f.clone());
+        p.push(f.clone());
     }
     if !non_f.is_empty() {
-        P.push(non_f.clone());
+        p.push(non_f.clone());
     }
 
     // Conjunto de trabajo W
-    let mut W = vec![P[0].clone()];
+    let mut w = vec![p[0].clone()];
 
     // Hopcroft refinement
-    while let Some(A) = W.pop() {
+    while let Some(a) = w.pop() {
         for sym in &alphabet {
-            let mut X = HashSet::new();
+            let mut x = HashSet::new();
             for &s in &all_states {
                 if complete
                     .get(&s)
                     .and_then(|m| m.get(sym))
                     .copied()
-                    .filter(|t| A.contains(t))
+                    .filter(|t| a.contains(t))
                     .is_some()
                 {
-                    X.insert(s);
+                    x.insert(s);
                 }
             }
 
-            let mut new_P = Vec::new();
-            for Y in P.drain(..) {
-                let intersection: HashSet<char> = Y.intersection(&X).cloned().collect();
-                let difference: HashSet<char> = Y.difference(&X).cloned().collect();
+            let mut new_p = Vec::new();
+            for y in p.drain(..) {
+                let intersection: HashSet<char> = y.intersection(&x).cloned().collect();
+                let difference: HashSet<char> = y.difference(&x).cloned().collect();
                 if !intersection.is_empty() && !difference.is_empty() {
-                    new_P.push(intersection.clone());
-                    new_P.push(difference.clone());
-                    if let Some(pos) = W.iter().position(|w| *w == Y) {
-                        W.remove(pos);
-                        W.push(intersection);
-                        W.push(difference);
+                    new_p.push(intersection.clone());
+                    new_p.push(difference.clone());
+                    if let Some(pos) = w.iter().position(|w| *w == y) {
+                        w.remove(pos);
+                        w.push(intersection);
+                        w.push(difference);
                     } else if intersection.len() <= difference.len() {
-                        W.push(intersection);
+                        w.push(intersection);
                     } else {
-                        W.push(difference);
+                        w.push(difference);
                     }
                 } else {
-                    new_P.push(Y);
+                    new_p.push(y);
                 }
             }
-            P = new_P;
+            p = new_p;
         }
     }
 
     // Mapear cada clase a un nuevo char
     let mut mapping = HashMap::new();
     let mut next_name = 'A';
-    for block in &P {
+    for block in &p {
         for &st in block {
             mapping.insert(st, next_name);
         }
@@ -97,7 +97,7 @@ pub fn minimize_dfa(
     // Construir DFA minimizado
     let mut minimized = HashMap::new();
     let mut minimized_accepts = HashSet::new();
-    for block in &P {
+    for block in &p {
         let repr = *block.iter().next().unwrap();
         let new_state = mapping[&repr];
         let mut row = HashMap::new();
