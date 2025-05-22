@@ -10,12 +10,11 @@ use syntax_analyzer::syn::yp_reader::read_yalpar;
 use syntax_analyzer::view::print_table;
 use ron::ser::{to_string_pretty, PrettyConfig};
 fn main(){
-    full_flow();
+    syn_flow();
 }
 
 fn full_flow(){ 
     // Lexer
-
     let l_filename = "./grammar/lexer.yal";
     let la_raw = LexAnalyzer::generate(l_filename);
     let la_serialized = to_string_pretty(&la_raw, PrettyConfig::default()).unwrap();
@@ -86,13 +85,17 @@ fn syn_flow(){
 
     // 6. Input para analizar
     let tokens = vec![
+        "TOKEN_L_BRACE".to_string(),
         "TOKEN_SENTENCE".to_string(),
+        "TOKEN_OR".to_string(),
+        "TOKEN_SENTENCE".to_string(),
+        "TOKEN_R_BRACE".to_string(),
         "TOKEN_AND".to_string(),
         "TOKEN_SENTENCE".to_string()
     ];
 
     // 7. Análisis SLR
-    let steps = slr.parse(
+    let (steps, error_msg) = slr.parse(
         &tokens,
         &action,
         &goto,
@@ -102,6 +105,11 @@ fn syn_flow(){
         &steps,
         "graph/parsing_steps.txt"
     );
+
+    if let Some((visual_msg, detailed_msg)) = error_msg {
+        println!("{}", visual_msg);
+        println!("{}", detailed_msg);
+    };
 }
 
 
