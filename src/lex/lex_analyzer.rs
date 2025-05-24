@@ -38,7 +38,7 @@ impl LexAnalyzer{
             header: lexer_data.imports,
             token_list: token_list
         };
-        println!("~ L: Finished SUccessfully");
+        println!("~ L: Finished Successfully");
         la
     }
 

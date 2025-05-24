@@ -230,13 +230,12 @@ impl SLR {
             counter+=1;
         }
 
-
         self.contents.insert(0, i0_content);
 
         // first layer
         self.calculate_w_generation(Vec::from([0]));
         while !self.current_generation.is_empty() {
-            print!("\rGeneration num: {}", &self.current_generation.len());
+            // print!("\rGeneration num: {}", &self.current_generation.len());
             let mut sorted_vec: Vec<u8> = self.current_generation.iter().cloned().collect();
             sorted_vec.sort_by(|a, b| a.cmp(b));
             self.current_generation.clear();
@@ -303,7 +302,6 @@ impl SLR {
                 // println!("Before closure: {:?}",state_const);
                 // println!("* Closures:");
                 let mut is_closed: Vec<Element> = Vec::new();
-
                 loop {
                     let mut to_close = self.requires_closure(&state_const);
                     to_close.retain(|x| !is_closed.contains(x));
@@ -322,9 +320,11 @@ impl SLR {
                                     state_const.push((*ta, 0));
                                 }
                             }
-                            is_closed.push(tc);
-                            // println!(" ** now its {:?}",state_const);
+                        } else {
+                            println!("WARNING: heads.get({:?}) returned None", tc);
                         }
+                        is_closed.push(tc.clone());
+                        // println!(" ** now its {:?}",state_const);
                     }
                 }
                 // println!("{:?}", state_const);
@@ -351,6 +351,7 @@ impl SLR {
             }
         }
     }
+
     /// Construye las tablas ACTION y GOTO usando los FOLLOW sets
     pub fn build_parsing_table(
         &self,
