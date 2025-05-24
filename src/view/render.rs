@@ -33,21 +33,17 @@ pub fn render_png(slr: &SLR){
             let inner_str = slr.print_state(*inner.1);
             tem.insert(inner_str.clone(),trans);
             if finish.contains(inner.1){
-                println!("{} is purple",inner_str);
                 purple.insert(inner_str.clone());
             }
             if acceptance.contains(inner.1){
-                println!("{} is green",inner_str);
                 green.insert(inner_str.clone());
             }
         }
         let outer_str = slr.print_state(*outer.0);
         if finish.contains(outer.0){
-            println!("{} is purple",outer_str);
             purple.insert(outer_str.clone());
         }
         if acceptance.contains(outer.0){
-            println!("{} is green",outer_str);
             green.insert(outer_str.clone());
         }
         graph_data.insert(outer_str, tem);

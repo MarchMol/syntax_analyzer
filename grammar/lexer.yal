@@ -1,9 +1,8 @@
 {
-    use syntax_analyzer::syn::first_follow;
-    use syntax_analyzer::syn::slr_automata;
-    use syntax_analyzer::view::render;
-    use syntax_analyzer::syn::yp_reader::read_yalpar;
-    use syntax_analyzer::view::print_table;
+use std::{fs::File, io::BufReader};
+use ron::de::from_reader;
+use syntax_analyzer::{lex::lex_analyzer::{LexAnalyzer, Symbol}, syn::syn_analyzer::SynAnalyzer, view::print_table::{self, print_symbol_table}};
+use std::fs;
 }
 (* 1. Var definition: *)
     (* Numbers *)
@@ -16,18 +15,20 @@ let float = "-"?(digit"."(digit*))
 let letter = ([a-z]|[A-Z])
 
 (* Extra *)
-let ws = (" "|"\n"|"\t"|"\s")+
-
+let inlne_ws = (" "|"\t"|"\s")+
+let break_ws = "\n"+
 (* 2. Rules *)
 rule gettoken =
     integer                           { return "INT"; }
+    | "\""(letter)*"\""               { return "STRING"; }
     | float                           { return "FLOAT"; }
     | float("e"|"E")integer           { return "SCINOT"; }
     | "return"                        { return "RETURN"; }
     | "if"                            { return "IF"; }
+    | "while"                            { return "WHILE"; }
     | "ignoreMe"                      { }
-    | "\""(letter*)"\""                    { return "STRING"; }
-    | "="                             { return "ASIGN"; }
+    | "\/\/"(letter|inlne_ws)*        { }
+    | "="                             { return "ASSIGN"; }
     | "=="                            { return "EQUAL"; }
     | "\{"                             { return "LBRACKET"; }
     | "\}"                             { return "RBRACKET"; }
@@ -35,4 +36,4 @@ rule gettoken =
     | "\)"                             { return "RPAREN"; }
     | ";"                             { return "SEMICOLON"; }
     | letter(letter|digit|"_")*       { return "ID"; }
-    | ws                              { return "WS"; }
+    | (inlne_ws|break_ws)              { return "WS"; }

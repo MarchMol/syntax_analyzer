@@ -14,25 +14,27 @@
 %token LBRACKET
 %token RBRACKET
 %token RETURN
+%token STRING
 IGNORE WS
 
 %%
 /* producciones */
 S: 
-    X X
+    T
+;
+T:
+    X
+    | X T 
 ;
 X:  
     A SEMICOLON
-    | B SEMICOLON
+    | B
 ;
 
 A:  
-    V ASSIGN L
+    ID ASSIGN L
 ;
 
-V:
-    ID
-;
 L:  
     INT
     | FLOAT
@@ -49,7 +51,7 @@ C:
 ;
 E: 
     LPAREN E RPAREN
-    | V EQUAL L
+    | ID EQUAL L
 ;
 F: 
     LBRACKET F RBRACKET

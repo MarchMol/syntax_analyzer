@@ -1,9 +1,39 @@
 use std::collections::{HashMap, HashSet};
-use crate::syn::slr_automata::ParsingStep;
+use crate::lex::lex_analyzer::Symbol;
+use crate::syn::syn_analyzer::ParsingStep;
 
 use prettytable::{row, Cell, Table};
 use std::fs::File;
 use std::path::Path;
+
+pub fn print_symbol_table(
+    symbols: &Vec<Symbol>,
+    filename: &str
+)->std::io::Result<()>{
+    let mut table = Table::new();
+    let header = row!["Lexem Id", "Content", "Token Id", "Token Action", "Start", "End"];
+    table.add_row(header);
+    for s in symbols{
+        let row = row![
+            s.id,
+            s.content,
+            s.token,
+            s.token_name,
+            s.start,
+            s.end
+        ];
+        table.add_row(row);
+    }
+
+    let path = Path::new(filename);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut file = File::create(path)?;
+    table.print(&mut file)?;
+    println!("Table written to {:?}", path);
+    Ok(())
+}
 
 pub fn print_parse_table(
     icount: u8, 
@@ -111,3 +141,4 @@ pub fn print_parse_steps(
     println!("Parsing steps written to {:?}", path);
     Ok(())
 }
+

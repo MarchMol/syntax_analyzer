@@ -12,6 +12,14 @@ pub struct LexAnalyzer{
     pub header: Vec<String>,
 }
 
+pub struct Symbol{
+    pub id: usize,
+    pub token: String,
+    pub token_name: String,
+    pub start: usize,
+    pub end: usize,
+    pub content: String
+}
 
 impl LexAnalyzer{
     pub fn generate(filename: &str)->LexAnalyzer{
@@ -154,16 +162,18 @@ impl LexAnalyzer{
     pub fn simulate(
         &self,
         input: String,
-    ) -> Vec<String> {
+    ) -> Vec<Symbol> {
     let mut tk_list: Vec<String> = Vec::new();
+    let mut symbols : Vec<Symbol> = Vec::new();
     let len = input.len();
     let mut last_start = 0;
     let mut condition = false;
-
+    let mut counter = 0;
     while !condition {
         let mut lexem = String::new();
         let mut greedy_match = String::new();
         let mut greedy_end = 0;
+        let mut biggest_lex = String::new();
         for i in last_start..len {
             let c = input.char_indices().nth(i).map(|(_, c)| c).unwrap();
             lexem.push(c);
@@ -180,26 +190,28 @@ impl LexAnalyzer{
         if last_start >= greedy_end {
             panic!("Token no identificado {}", lexem);
         } 
-        // else {
-        //     let biggest_lex: String = input
-        //         .chars()
-        //         .skip(last_start)
-        //         .take(greedy_end - last_start)
-        //         .collect();
+        else {
+            biggest_lex = input
+                .chars()
+                .skip(last_start)
+                .take(greedy_end - last_start)
+                .collect();
         //     // println!("FINAL ({}-{}) Lex: \"{}\", match: {:?}", last_start, greedy_end,biggest_lex, greedy_match);
-        // }
+        }
         // println!("GREEDY MATCH '{}' = {}",&input[last_start..greedy_end],greedy_match);
         if greedy_match == "UNKNOWN" {
             last_start += 1;
         } else {
+            symbols.push(Symbol { id: counter, token: greedy_match.clone(), start: last_start, end: greedy_end, content: biggest_lex, token_name:String::new() });
             tk_list.push(greedy_match);
             last_start = greedy_end;
         }
         if greedy_end == len {
             condition = true;
         }
+        counter+=1;
     }
-    tk_list
+    symbols
 }
 
 fn get_token_type(
