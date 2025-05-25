@@ -1,0 +1,17 @@
+{
+    "parse_method": "SLR",
+
+    "debug": {
+        "generation": false,
+        "parsing": false
+    },
+    
+    "vis": {
+        "slr_png": "./graph/slr",
+        "parse_table": "./graph/parse_table.txt",
+        "parse_steps": "./graph/parse_steps.txt",
+        "symbol_table": "./graph/symbol_table.txt",
+        "grammar_tree": "./graph/grammar_tree.txt",
+        "dfa": null
+    }
+}
