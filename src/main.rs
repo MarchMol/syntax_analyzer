@@ -1,32 +1,41 @@
-
-use std::fs;
+use core::panic;
+use std::{env, fs};
 use std::{collections::HashMap, fs::File};
 use std::io::Write;
 use syntax_analyzer::lex::lex_analyzer::LexAnalyzer;
 use syntax_analyzer::syn::syn_analyzer::SynAnalyzer;
 use ron::ser::{to_string_pretty, PrettyConfig};
+use syntax_analyzer::utility::read_config::fetch_config;
+
+const LEX_RON_PATH: &str = "./src/bin/lex_analyzer.ron";
+const SYN_RON_PATH: &str = "./src/bin/syn_analyzer.ron";
+const PARSER_PATH: &str = "./src/bin/parser.rs";
 
 fn main(){
-    _full_flow();
-}
+    // 1. Fetch Arguments
+    let args: Vec<String> = env::args().collect();
+    if args.len()!=3{
+        panic!("Arguments must be 'cargo run --bin syntax_analyzer -- ./path/to/lex.yal ./path/to/syn.yalp'")
+    }
+    let lex_path = &args[1];
+    let syn_path = &args[2];
 
-fn _full_flow(){ 
-    // Lexer
-    let l_filename = "./grammar/lexer.yal";
-    let la_raw = LexAnalyzer::generate(l_filename);
+    // 2. fetch Config
+    let config = fetch_config();
+
+    // 3. Generate
+    let la_raw = LexAnalyzer::generate(&lex_path, &config);
     let la_serialized = to_string_pretty(&la_raw, PrettyConfig::default()).unwrap();
-    let mut l_file = File::create("./src/bin/lex_analyzer.ron").unwrap();
+    let mut l_file = File::create(LEX_RON_PATH).unwrap();
     l_file.write_all(la_serialized.as_bytes()).unwrap();
-    
-    // Syntaxer
-    let s_filename = "./grammar/test_grammar.yalp";
-    let sa_raw = SynAnalyzer::generate(s_filename, true);
+
+    let sa_raw = SynAnalyzer::generate(&syn_path, &config);
     let sa_serialized = to_string_pretty(&sa_raw, PrettyConfig::default()).unwrap();
-    let mut s_file = File::create("./src/bin/syn_analyzer.ron").unwrap();
+    let mut s_file = File::create(SYN_RON_PATH).unwrap();
     s_file.write_all(sa_serialized.as_bytes()).unwrap();
 
     // Generate Parser
-    let _ = write_to_main("./src/bin/parser.rs", la_raw.header, la_raw.actions);
+    let _ = write_to_main(PARSER_PATH, la_raw.header, la_raw.actions);
 }
 
 fn write_to_main(
@@ -39,6 +48,10 @@ fn write_to_main(
         format_headers+=&h;
         format_headers+="\n";
     }
+    format_headers+="\n";
+    let constants = "const LEX_RON_PATH: &str = \"./src/bin/lex_analyzer.ron\";
+const SYN_RON_PATH: &str = \"./src/bin/syn_analyzer.ron\";\n\n";
+
     let mut format_actions = String::new();
     format_actions+="fn actions(id: i32)-> &'static str{
     match id{\n";
@@ -54,11 +67,21 @@ fn write_to_main(
 }\n\n";
     let main_method = 
     "fn main()-> std::io::Result<()> {
+    // 1. Fetch Arguments
+    let args: Vec<String> = env::args().collect();
+    if args.len()!=2{
+        panic!(\"Arguments must be 'cargo run --bin parser -- ./path/to/input.txt'\")
+    }
+    let input_path = &args[1];
+
+    // 2. Config
+    let config = fetch_config();
+
     // Input Fetch
-    let contents = fs::read_to_string(\"./grammar/input.txt\")?;
+    let contents = fs::read_to_string(input_path)?;
 
     // Lexic Rules Fetch
-    let l_file = File::open(\"./src/bin/lex_analyzer.ron\").unwrap();
+    let l_file = File::open(LEX_RON_PATH).unwrap();
     let l_reader = BufReader::new(l_file);
     let lex: LexAnalyzer = from_reader(l_reader).unwrap();
 
@@ -81,10 +104,11 @@ fn write_to_main(
             });
         }
     }
-
-    let _ = print_symbol_table(&symbol_table,\"graph/symbol_table.txt\");
+    if let Some(path) = config.vis.symbol_table{
+         let _ = print_symbol_table(&symbol_table,&path);
+    }
     
-    let s_file = File::open(\"./src/bin/syn_analyzer.ron\").unwrap();
+    let s_file = File::open(SYN_RON_PATH).unwrap();
     let s_reader = BufReader::new(s_file);
     let syn: SynAnalyzer = from_reader(s_reader).unwrap();
 
@@ -94,10 +118,12 @@ fn write_to_main(
         &symbol_table
     );
 
-    let _steps_rslt = print_table::print_parse_steps(
-        &steps,
-        \"graph/parsing_steps.txt\"
-    );
+    if let Some(path) = config.vis.parse_steps{
+        let _steps_rslt = print_table::print_parse_steps(
+            &steps,
+            &path
+        );
+    }
 
     if let Some((visual_msg, detailed_msg)) = error_msg {
         println!(\"{}\", visual_msg);
@@ -107,72 +133,7 @@ fn write_to_main(
 }";
 
 
-    let parsing_code = format_headers+&format_actions+main_method;
+    let parsing_code = format_headers+constants+&format_actions+main_method;
     fs::write(filename, parsing_code)?;
     Ok(())
 }
-// fn _syn_flow(){
-//     // 1. Source Grammar
-//     let filename = "./grammar/parser.yalp";
-//     let grammar = read_yalpar(filename);
-
-//     // 2. First
-//     let firsts = first_follow::find_first(
-//         grammar.productions.clone(),
-//         grammar.terminals.clone(),
-//         grammar.non_terminals.clone(),
-//     );
-
-//     // 3. Follow
-//     let follows = first_follow::find_follow(
-//         & grammar.productions,
-//         &grammar.terminals,
-//         &grammar.non_terminals,
-//         &firsts,
-//         &grammar.init_symbol,
-//     );
-
-//     println!("\n== FOLLOW ==");
-//     for (nt, set) in &follows {
-//         println!("FOLLOW({}) = {:?}", nt, set);
-//     }
-
-//     // 4. SLR
-//     let mut slr = slr_automata::SLR::new(
-//         &grammar.productions, 
-//         &grammar.terminals,
-//         &grammar.init_symbol);
-//     slr.generate();
-
-//     render::render_png(&slr);
-
-//     // 5. Parsing Table
-//     let (
-//         action, 
-//         goto
-//     ) = slr.build_parsing_table(&follows);
-
-    
-
-//     let _rslt = print_table::print_parse_table(
-//         slr.icount, 
-//         grammar.terminals, 
-//         grammar.non_terminals,
-//         &action,
-//         &goto,
-//     "graph/parse_table.txt");
-//     // if rslt.is_ok(){
-//     //     panic!("Error generating table")
-//     // } 
-
-//     // 6. Input para analizar
-//     let tokens = vec![
-//         "TOKEN_L_BRACE".to_string(),
-//         "TOKEN_SENTENCE".to_string(),
-//         "TOKEN_OR".to_string(),
-//         "TOKEN_SENTENCE".to_string(),
-//         "TOKEN_R_BRACE".to_string(),
-//         "TOKEN_AND".to_string(),
-//         "TOKEN_SENTENCE".to_string()
-//     ];
-// }

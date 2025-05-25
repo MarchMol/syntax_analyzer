@@ -1,35 +1,49 @@
-use std::{fs::File, io::BufReader};
+use std::{env, fs::File, io::BufReader};
 use ron::de::from_reader;
-use syntax_analyzer::{lex::lex_analyzer::{LexAnalyzer, Symbol}, syn::syn_analyzer::SynAnalyzer, view::print_table::{self, print_symbol_table}};
+use syntax_analyzer::{lex::lex_analyzer::{LexAnalyzer, Symbol}, syn::syn_analyzer::SynAnalyzer, utility::read_config::fetch_config, view::print_table::{self, print_symbol_table}};
 use std::fs;
+
+const LEX_RON_PATH: &str = "./src/bin/lex_analyzer.ron";
+const SYN_RON_PATH: &str = "./src/bin/syn_analyzer.ron";
+
 fn actions(id: i32)-> &'static str{
     match id{
-		16=>{return "ID";}
+		0=>{return "INT";}
 		3=>{return "SCINOT";}
-		12=>{return "RBRACKET";}
-		4=>{return "RETURN";}
-		14=>{return "RPAREN";}
-		11=>{return "LBRACKET";}
 		9=>{return "ASSIGN";}
-		6=>{return "WHILE";}
-		13=>{return "LPAREN";}
-		1=>{return "STRING";}
-		10=>{return "EQUAL";}
-		2=>{return "FLOAT";}
 		15=>{return "SEMICOLON";}
 		17=>{return "WS";}
-		0=>{return "INT";}
+		2=>{return "FLOAT";}
+		13=>{return "LPAREN";}
+		12=>{return "RBRACKET";}
+		10=>{return "EQUAL";}
+		11=>{return "LBRACKET";}
+		1=>{return "STRING";}
+		6=>{return "WHILE";}
+		4=>{return "RETURN";}
+		14=>{return "RPAREN";}
 		5=>{return "IF";}
+		16=>{return "ID";}
 		_=> {return "";}
     }
 }
 
 fn main()-> std::io::Result<()> {
+    // 1. Fetch Arguments
+    let args: Vec<String> = env::args().collect();
+    if args.len()!=2{
+        panic!("Arguments must be 'cargo run --bin parser -- ./path/to/input.txt")
+    }
+    let input_path = &args[1];
+
+    // 2. Config
+    let config = fetch_config();
+
     // Input Fetch
-    let contents = fs::read_to_string("./grammar/input.txt")?;
+    let contents = fs::read_to_string(input_path)?;
 
     // Lexic Rules Fetch
-    let l_file = File::open("./src/bin/lex_analyzer.ron").unwrap();
+    let l_file = File::open(LEX_RON_PATH).unwrap();
     let l_reader = BufReader::new(l_file);
     let lex: LexAnalyzer = from_reader(l_reader).unwrap();
 
@@ -52,10 +66,11 @@ fn main()-> std::io::Result<()> {
             });
         }
     }
-
-    let _ = print_symbol_table(&symbol_table,"graph/symbol_table.txt");
+    if let Some(path) = config.vis.symbol_table{
+         let _ = print_symbol_table(&symbol_table,&path);
+    }
     
-    let s_file = File::open("./src/bin/syn_analyzer.ron").unwrap();
+    let s_file = File::open(SYN_RON_PATH).unwrap();
     let s_reader = BufReader::new(s_file);
     let syn: SynAnalyzer = from_reader(s_reader).unwrap();
 
@@ -65,10 +80,12 @@ fn main()-> std::io::Result<()> {
         &symbol_table
     );
 
-    let _steps_rslt = print_table::print_parse_steps(
-        &steps,
-        "graph/parsing_steps.txt"
-    );
+    if let Some(path) = config.vis.parse_steps{
+        let _steps_rslt = print_table::print_parse_steps(
+            &steps,
+            &path
+        );
+    }
 
     if let Some((visual_msg, detailed_msg)) = error_msg {
         println!("{}", visual_msg);

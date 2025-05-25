@@ -1,5 +1,7 @@
 pub mod utility{
     pub mod reader;
+    pub mod writer;
+    pub mod read_config;
 }
 
 pub mod lex{

@@ -7,7 +7,7 @@ use std::fs;
 
 use crate::syn::slr_automata::{Element, SLR};
 
-pub fn render_png(slr: &SLR){
+pub fn render_png(slr: &SLR, filename: &str){
     let finish: Vec<u8> = slr.finish_states
     .iter()
     .map(|(b,_)| *b)
@@ -70,8 +70,8 @@ pub fn render_png(slr: &SLR){
     }
 
     // Step 4: Write DOT file with labels
-    let dot_file = "./graph/slr.dot";
-    let png_file = "./graph/slr.png";
+    let dot_file = filename.to_string()+".dot";
+    let png_file = filename.to_string()+".png";
     let node_attr = |_: &Graph<String, String>, (_node_idx, label): (NodeIndex, &String)| {
         if purple.contains(label) {
             r#"shape=box, color=purple, penwidth=5"#.to_string()
@@ -90,7 +90,7 @@ pub fn render_png(slr: &SLR){
         &|_graph, _edge| String::new(), 
         &node_attr
     );
-    fs::write(dot_file, dot.to_string()).expect("Unable to write file");
+    fs::write(&dot_file, dot.to_string()).expect("Unable to write file");
 
     // Write to a file
 
@@ -99,7 +99,7 @@ pub fn render_png(slr: &SLR){
         .arg("-Tpng") // Output format: PNG
         .arg(dot_file) // Input file
         .arg("-o") // Output file flag
-        .arg(png_file) // Output file name
+        .arg(&png_file) // Output file name
         .arg("-Grandom_seed=42")
         .output();
 

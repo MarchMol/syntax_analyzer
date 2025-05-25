@@ -1,7 +1,7 @@
 {
-use std::{fs::File, io::BufReader};
+use std::{env, fs::File, io::BufReader};
 use ron::de::from_reader;
-use syntax_analyzer::{lex::lex_analyzer::{LexAnalyzer, Symbol}, syn::syn_analyzer::SynAnalyzer, view::print_table::{self, print_symbol_table}};
+use syntax_analyzer::{lex::lex_analyzer::{LexAnalyzer, Symbol}, syn::syn_analyzer::SynAnalyzer, utility::read_config::fetch_config, view::print_table::{self, print_symbol_table}};
 use std::fs;
 }
 (* 1. Var definition: *)

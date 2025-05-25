@@ -1,5 +1,7 @@
 use std::{collections::{HashMap, HashSet}, rc::Rc};
 use serde::{Deserialize, Serialize};
+use crate::utility::{read_config::Config, writer::write_to_file};
+
 use super::{direct_afd, grammar_tree, minimize, tokenizer, yl_reader::read_yalex};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -22,22 +24,41 @@ pub struct Symbol{
 }
 
 impl LexAnalyzer{
-    pub fn generate(filename: &str)->LexAnalyzer{
+    pub fn generate(filename: &str, config: &Config)->LexAnalyzer{
         let lexer_data = read_yalex(filename);
-        println!("~ L: YAL obtained"); 
+        if config.debug.generation{
+            println!("~ L: YAL obtained"); 
+        }
+
         let tokenized_data = tokenizer::inf_to_pos(&lexer_data.merged);
-        println!("~ L: Regex tokenized");
+        if config.debug.generation{
+            println!("~ L: Regex tokenized");
+        }
+
         let mut gtree = grammar_tree::Tree::new();
-        let _ = gtree.generate(tokenized_data);
+        let root = gtree.generate(tokenized_data);
         let gtree_ref = Rc::new(gtree);
-        println!("~ L: Grammar tree generated");
+        if config.debug.generation{
+            println!("~ L: Grammar tree generated");
+        }
+        if let Some(path) = &config.vis.grammar_tree{
+            let gt = (*root).clone().print_tree(0, "root\n");
+            let _ = write_to_file(path, &gt);
+        }
+
         let mut afd = direct_afd::DirectAFD::new(gtree_ref);
         afd.generate_afd();
-        println!("~ L: AFD Generated");
+        if config.debug.generation{
+            println!("~ L: AFD Generated");
+        }
+
         let (state_map, acceptance_states, token_list) = afd.create_states();
         let (minimized_map, minimized_accept_states, minimized_start) =
             minimize::minimize_dfa(&state_map, &acceptance_states);
-        println!("~ L: AFD minimized");
+        if config.debug.generation{
+            println!("~ L: AFD minimized");
+        }
+        
         let la = LexAnalyzer{
             map: minimized_map,
             accept: minimized_accept_states,
@@ -46,7 +67,10 @@ impl LexAnalyzer{
             header: lexer_data.imports,
             token_list: token_list
         };
-        println!("~ L: Finished Successfully");
+
+        if config.debug.generation{
+            println!("~ L: Finished Successfully");
+        }
         la
     }
 

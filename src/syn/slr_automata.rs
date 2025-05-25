@@ -6,7 +6,6 @@ use std::{
 pub type ActionTable = HashMap<(u8, String), String>;
 pub type GotoTable = HashMap<(u8, String), u8>;
 
-use std::iter::Peekable;
 
 use serde::{Deserialize, Serialize};
 

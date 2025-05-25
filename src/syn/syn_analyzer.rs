@@ -1,16 +1,27 @@
-use std::{collections::{HashMap, HashSet}, iter::Peekable};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::Peekable,
+};
 
+use super::{
+    first_follow,
+    slr_automata::{self, Element},
+    yp_reader::read_yalpar,
+};
+use crate::{
+    lex::lex_analyzer::Symbol,
+    utility::read_config::Config,
+    view::{print_table, render},
+};
 use serde::{Deserialize, Serialize};
-use crate::{lex::lex_analyzer::Symbol, view::{print_table, render}};
 use std::time::Instant;
-use super::{first_follow, slr_automata::{self, Element}, yp_reader::read_yalpar};
 
 #[derive(Serialize, Deserialize)]
-pub struct SynAnalyzer{
+pub struct SynAnalyzer {
     pub productions: HashMap<u8, Vec<Element>>,
     pub action: HashMap<(u8, String), String>,
     pub goto: HashMap<(u8, String), u8>,
-    pub ignore: HashSet<String>
+    pub ignore: HashSet<String>,
 }
 
 pub struct ParsingStep {
@@ -19,12 +30,13 @@ pub struct ParsingStep {
     pub action: String,
 }
 
-
-impl SynAnalyzer{
-    pub fn generate(filename: &str, do_vis: bool)->SynAnalyzer{
+impl SynAnalyzer {
+    pub fn generate(filename: &str, config: &Config) -> SynAnalyzer {
         // 1. Obtener gramatica
         let grammar = read_yalpar(filename);
-        println!("~ S: Grammar obtained");
+        if config.debug.generation {
+            println!("~ S: Grammar obtained");
+        }
 
         // 2. Obtener firsts
         let firsts = first_follow::find_first(
@@ -32,64 +44,73 @@ impl SynAnalyzer{
             grammar.terminals.clone(),
             grammar.non_terminals.clone(),
         );
-        println!("~ S: First calculated");
-
+        if config.debug.generation {
+            println!("~ S: First calculated");
+        }
         // 3. Obtener Follow
         let follows = first_follow::find_follow(
-            & grammar.productions,
+            &grammar.productions,
             &grammar.terminals,
             &grammar.non_terminals,
             &firsts,
             &grammar.init_symbol,
         );
-        println!("~ S: Follow calculated");
+        if config.debug.generation {
+            println!("~ S: Follow calculated");
+        }
 
         // 4. Generar SLR
         let mut slr = slr_automata::SLR::new(
-            &grammar.productions, 
+            &grammar.productions,
             &grammar.terminals,
-            &grammar.init_symbol);
-        println!("~ S: SLR initialized");
+            &grammar.init_symbol,
+        );
+
+        if config.debug.generation {
+            println!("~ S: SLR initialized");
+        }
+
         slr.generate();
 
-        println!("~ S: SLR calculated!");
-        if do_vis{
-            render::render_png(&slr);
+        if config.debug.generation {
+            println!("~ S: SLR calculated!");
         }
-    
-        // 5. Shift and reduces
-        let (
-            action, 
-            goto
-        ) = slr.build_parsing_table(&follows);
+        if let Some(render_path) = &config.vis.slr_png {
+            render::render_png(&slr, &render_path);
+        }
 
-        println!("~ S: Action Table Calculated");
-        if do_vis{
+        // 5. Shift and reduces
+        let (action, goto) = slr.build_parsing_table(&follows);
+
+        if config.debug.generation {
+            println!("~ S: Action Table Calculated");
+        }
+        if let Some(path) = &config.vis.parse_table {
             let _rslt = print_table::print_parse_table(
-                slr.icount, 
-                grammar.terminals, 
+                slr.icount,
+                grammar.terminals,
                 grammar.non_terminals,
                 &action,
                 &goto,
-            "graph/parse_table.txt"
+                &path,
             );
         }
 
         // 6. Save result
-        let sa = SynAnalyzer{
+        let sa = SynAnalyzer {
             productions: slr.productions,
             action: action,
             goto: goto,
-            ignore: grammar.ignore
+            ignore: grammar.ignore,
         };
-        println!("~ S: Generation successfull");
+
+        if config.debug.generation {
+            println!("~ S: Generation successfull");
+        }
         sa
     }
 
-    pub fn parse(
-        &self,
-        tokens: &[Symbol],
-    ) -> (Vec<ParsingStep>, Option<(String, String)>) {
+    pub fn parse(&self, tokens: &[Symbol]) -> (Vec<ParsingStep>, Option<(String, String)>) {
         let start = Instant::now();
         let mut steps = Vec::new();
         let mut stack: Vec<u8> = vec![0];
@@ -114,7 +135,13 @@ impl SynAnalyzer{
                     action: detailed_msg.clone(),
                 });
 
-                return (steps, Some((error_msg_with_arrow(error_msg, error_index, tokens), detailed_msg)));
+                return (
+                    steps,
+                    Some((
+                        error_msg_with_arrow(error_msg, error_index, tokens),
+                        detailed_msg,
+                    )),
+                );
             }
         }
 
@@ -135,7 +162,7 @@ impl SynAnalyzer{
                         action: "ACCEPTANCE".to_string(),
                     });
                     break;
-                },
+                }
                 Some(s) if s.starts_with('s') => {
                     let next_st: u8 = s[1..].parse().unwrap();
                     stack.push(next_st);
@@ -175,7 +202,13 @@ impl SynAnalyzer{
                                 action: detailed_msg.clone(),
                             });
 
-                            return (steps, Some((error_msg_with_arrow(error_msg, error_index, tokens), detailed_msg)));
+                            return (
+                                steps,
+                                Some((
+                                    error_msg_with_arrow(error_msg, error_index, tokens),
+                                    detailed_msg,
+                                )),
+                            );
                         }
                     };
                     stack.push(goto_st);
@@ -184,7 +217,12 @@ impl SynAnalyzer{
                     steps.push(ParsingStep {
                         stack: stack_str,
                         input: input_str,
-                        action: format!("r{}: {} -> {:?}", prod_id, lhs, &self.productions[&(prod_id)][1..]),
+                        action: format!(
+                            "r{}: {} -> {:?}",
+                            prod_id,
+                            lhs,
+                            &self.productions[&(prod_id)][1..]
+                        ),
                     });
                 }
                 _ => {
@@ -198,22 +236,24 @@ impl SynAnalyzer{
                         action: detailed_msg.clone(),
                     });
 
-                    return (steps, Some((error_msg_with_arrow(error_msg, error_index, tokens), detailed_msg)));
+                    return (
+                        steps,
+                        Some((
+                            error_msg_with_arrow(error_msg, error_index, tokens),
+                            detailed_msg,
+                        )),
+                    );
                 }
             }
         }
-        
+
         let duration = start.elapsed();
-        let success_msg = format!("Parsing Completed in {:.2?}",duration);
-        let message = format!(
-            "\n\x1b[1;32m{}:\x1b[0m\n",
-            success_msg,
-        );
+        let success_msg = format!("Parsing Completed in {:.2?}", duration);
+        let message = format!("\n\x1b[1;32m{}:\x1b[0m\n", success_msg,);
         println!("{}", message);
         (steps, None)
     }
 }
-
 
 fn highlight_error_token(tokens: &[Symbol], error_index: usize) -> String {
     let mut result = String::new();
