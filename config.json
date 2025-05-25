@@ -2,7 +2,7 @@
     "parse_method": "SLR",
 
     "debug": {
-        "generation": false,
+        "generation": true,
         "parsing": false
     },
     

@@ -8,22 +8,22 @@ const SYN_RON_PATH: &str = "./src/bin/syn_analyzer.ron";
 
 fn actions(id: i32)-> &'static str{
     match id{
-		0=>{return "INT";}
-		3=>{return "SCINOT";}
 		9=>{return "ASSIGN";}
-		15=>{return "SEMICOLON";}
-		17=>{return "WS";}
-		2=>{return "FLOAT";}
-		13=>{return "LPAREN";}
-		12=>{return "RBRACKET";}
-		10=>{return "EQUAL";}
-		11=>{return "LBRACKET";}
-		1=>{return "STRING";}
 		6=>{return "WHILE";}
-		4=>{return "RETURN";}
-		14=>{return "RPAREN";}
+		13=>{return "LPAREN";}
 		5=>{return "IF";}
+		0=>{return "INT";}
+		2=>{return "FLOAT";}
+		4=>{return "RETURN";}
+		10=>{return "EQUAL";}
+		14=>{return "RPAREN";}
 		16=>{return "ID";}
+		17=>{return "WS";}
+		15=>{return "SEMICOLON";}
+		3=>{return "SCINOT";}
+		1=>{return "STRING";}
+		11=>{return "LBRACKET";}
+		12=>{return "RBRACKET";}
 		_=> {return "";}
     }
 }
@@ -32,7 +32,7 @@ fn main()-> std::io::Result<()> {
     // 1. Fetch Arguments
     let args: Vec<String> = env::args().collect();
     if args.len()!=2{
-        panic!("Arguments must be 'cargo run --bin parser -- ./path/to/input.txt")
+        panic!("Arguments must be 'cargo run --bin parser -- ./path/to/input.txt'")
     }
     let input_path = &args[1];
 

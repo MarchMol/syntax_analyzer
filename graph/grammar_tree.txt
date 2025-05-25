@@ -1,0 +1,202 @@
+root
+Concat
+    L----Union
+        L----Concat
+            L----Concat
+                L----Union
+                    L----Literal('-')
+                    R----Empty
+                R----Concat
+                    L----Range('0', '9')
+                    R----Kleene
+                        L----Range('0', '9')
+            R----Tokener("0")
+        R----Union
+            L----Concat
+                L----Concat
+                    L----Literal('"')
+                    R----Concat
+                        L----Kleene
+                            L----Union
+                                L----Range('a', 'z')
+                                R----Range('A', 'Z')
+                        R----Literal('"')
+                R----Tokener("1")
+            R----Union
+                L----Concat
+                    L----Concat
+                        L----Union
+                            L----Literal('-')
+                            R----Empty
+                        R----Concat
+                            L----Range('0', '9')
+                            R----Concat
+                                L----Literal('.')
+                                R----Kleene
+                                    L----Range('0', '9')
+                    R----Tokener("2")
+                R----Union
+                    L----Concat
+                        L----Concat
+                            L----Union
+                                L----Literal('-')
+                                R----Empty
+                            R----Concat
+                                L----Concat
+                                    L----Range('0', '9')
+                                    R----Concat
+                                        L----Literal('.')
+                                        R----Kleene
+                                            L----Range('0', '9')
+                                R----Concat
+                                    L----Union
+                                        L----Literal('e')
+                                        R----Literal('E')
+                                    R----Concat
+                                        L----Union
+                                            L----Literal('-')
+                                            R----Empty
+                                        R----Concat
+                                            L----Range('0', '9')
+                                            R----Kleene
+                                                L----Range('0', '9')
+                        R----Tokener("3")
+                    R----Union
+                        L----Concat
+                            L----Concat
+                                L----Literal('r')
+                                R----Concat
+                                    L----Literal('e')
+                                    R----Concat
+                                        L----Literal('t')
+                                        R----Concat
+                                            L----Literal('u')
+                                            R----Concat
+                                                L----Literal('r')
+                                                R----Literal('n')
+                            R----Tokener("4")
+                        R----Union
+                            L----Concat
+                                L----Concat
+                                    L----Literal('i')
+                                    R----Literal('f')
+                                R----Tokener("5")
+                            R----Union
+                                L----Concat
+                                    L----Concat
+                                        L----Literal('w')
+                                        R----Concat
+                                            L----Literal('h')
+                                            R----Concat
+                                                L----Literal('i')
+                                                R----Concat
+                                                    L----Literal('l')
+                                                    R----Literal('e')
+                                    R----Tokener("6")
+                                R----Union
+                                    L----Concat
+                                        L----Concat
+                                            L----Literal('i')
+                                            R----Concat
+                                                L----Literal('g')
+                                                R----Concat
+                                                    L----Literal('n')
+                                                    R----Concat
+                                                        L----Literal('o')
+                                                        R----Concat
+                                                            L----Literal('r')
+                                                            R----Concat
+                                                                L----Literal('e')
+                                                                R----Concat
+                                                                    L----Literal('M')
+                                                                    R----Literal('e')
+                                        R----Tokener("7")
+                                    R----Union
+                                        L----Concat
+                                            L----Concat
+                                                L----Literal('/')
+                                                R----Concat
+                                                    L----Literal('/')
+                                                    R----Kleene
+                                                        L----Union
+                                                            L----Union
+                                                                L----Range('a', 'z')
+                                                                R----Range('A', 'Z')
+                                                            R----Concat
+                                                                L----Union
+                                                                    L----Literal(' ')
+                                                                    R----Union
+                                                                        L----Literal('\t')
+                                                                        R----Literal('s')
+                                                                R----Kleene
+                                                                    L----Union
+                                                                        L----Literal(' ')
+                                                                        R----Union
+                                                                            L----Literal('\t')
+                                                                            R----Literal('s')
+                                            R----Tokener("8")
+                                        R----Union
+                                            L----Concat
+                                                L----Literal('=')
+                                                R----Tokener("9")
+                                            R----Union
+                                                L----Concat
+                                                    L----Concat
+                                                        L----Literal('=')
+                                                        R----Literal('=')
+                                                    R----Tokener("10")
+                                                R----Union
+                                                    L----Concat
+                                                        L----Literal('{')
+                                                        R----Tokener("11")
+                                                    R----Union
+                                                        L----Concat
+                                                            L----Literal('}')
+                                                            R----Tokener("12")
+                                                        R----Union
+                                                            L----Concat
+                                                                L----Literal('(')
+                                                                R----Tokener("13")
+                                                            R----Union
+                                                                L----Concat
+                                                                    L----Literal(')')
+                                                                    R----Tokener("14")
+                                                                R----Union
+                                                                    L----Concat
+                                                                        L----Literal(';')
+                                                                        R----Tokener("15")
+                                                                    R----Union
+                                                                        L----Concat
+                                                                            L----Concat
+                                                                                L----Union
+                                                                                    L----Range('a', 'z')
+                                                                                    R----Range('A', 'Z')
+                                                                                R----Kleene
+                                                                                    L----Union
+                                                                                        L----Union
+                                                                                            L----Range('a', 'z')
+                                                                                            R----Range('A', 'Z')
+                                                                                        R----Union
+                                                                                            L----Range('0', '9')
+                                                                                            R----Literal('_')
+                                                                            R----Tokener("16")
+                                                                        R----Concat
+                                                                            L----Union
+                                                                                L----Concat
+                                                                                    L----Union
+                                                                                        L----Literal(' ')
+                                                                                        R----Union
+                                                                                            L----Literal('\t')
+                                                                                            R----Literal('s')
+                                                                                    R----Kleene
+                                                                                        L----Union
+                                                                                            L----Literal(' ')
+                                                                                            R----Union
+                                                                                                L----Literal('\t')
+                                                                                                R----Literal('s')
+                                                                                R----Concat
+                                                                                    L----Literal('\n')
+                                                                                    R----Kleene
+                                                                                        L----Literal('\n')
+                                                                            R----Tokener("17")
+    R----Sentinel
