@@ -25,6 +25,11 @@ fn main(){
 
     // 3. Generate
     let la_raw = LexAnalyzer::generate(&lex_path, &config);
+
+
+
+
+    
     let la_serialized = to_string_pretty(&la_raw, PrettyConfig::default()).unwrap();
     let mut l_file = File::create(LEX_RON_PATH).unwrap();
     l_file.write_all(la_serialized.as_bytes()).unwrap();

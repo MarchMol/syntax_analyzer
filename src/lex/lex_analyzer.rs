@@ -1,6 +1,8 @@
 use std::{collections::{HashMap, HashSet}, rc::Rc};
+use console::Style;
 use serde::{Deserialize, Serialize};
-use crate::utility::{read_config::Config, writer::write_to_file};
+use crate::{utility::{read_config::Config, writer::write_to_file}, view::{logging::print_log, render::render_dfa}};
+
 
 use super::{direct_afd, grammar_tree, minimize, tokenizer, yl_reader::read_yalex};
 
@@ -26,20 +28,23 @@ pub struct Symbol{
 impl LexAnalyzer{
     pub fn generate(filename: &str, config: &Config)->LexAnalyzer{
         let lexer_data = read_yalex(filename);
+        let blue = Style::new().blue().bold();
+        let green = Style::new().green().bold();
         if config.debug.generation{
-            println!("~ L: YAL obtained"); 
+            print!("\n");
+            print_log("~ L: Tokenizing Regex",1,6,&blue);
         }
 
         let tokenized_data = tokenizer::inf_to_pos(&lexer_data.merged);
         if config.debug.generation{
-            println!("~ L: Regex tokenized");
+            print_log("~ L: Calculating Grammar Tree",2,6,&blue);
         }
 
         let mut gtree = grammar_tree::Tree::new();
         let root = gtree.generate(tokenized_data);
         let gtree_ref = Rc::new(gtree);
         if config.debug.generation{
-            println!("~ L: Grammar tree generated");
+            print_log("~ L: Generating DFA",3,6,&blue);
         }
         if let Some(path) = &config.vis.grammar_tree{
             let gt = (*root).clone().print_tree(0, "root\n");
@@ -49,14 +54,18 @@ impl LexAnalyzer{
         let mut afd = direct_afd::DirectAFD::new(gtree_ref);
         afd.generate_afd();
         if config.debug.generation{
-            println!("~ L: AFD Generated");
+            print_log("~ L: Minimizing DFA",4,6,&blue);
         }
 
         let (state_map, acceptance_states, token_list) = afd.create_states();
         let (minimized_map, minimized_accept_states, minimized_start) =
             minimize::minimize_dfa(&state_map, &acceptance_states);
         if config.debug.generation{
-            println!("~ L: AFD minimized");
+            print_log("~ L: Saving information",5,6,&blue);
+        }
+
+        if let Some(path)= &config.vis.dfa{
+            render_dfa(&minimized_map, &minimized_accept_states, path);
         }
         
         let la = LexAnalyzer{
@@ -69,7 +78,8 @@ impl LexAnalyzer{
         };
 
         if config.debug.generation{
-            println!("~ L: Finished Successfully");
+            print_log("~ L: Lexic Analysis - Succesful Generation",6,6,&green);
+            println!("\n\n");
         }
         la
     }
@@ -197,7 +207,7 @@ impl LexAnalyzer{
         let mut lexem = String::new();
         let mut greedy_match = String::new();
         let mut greedy_end = 0;
-        let mut biggest_lex = String::new();
+        let mut _biggest_lex = String::new();
         for i in last_start..len {
             let c = input.char_indices().nth(i).map(|(_, c)| c).unwrap();
             lexem.push(c);
@@ -215,7 +225,7 @@ impl LexAnalyzer{
             panic!("Token no identificado {}", lexem);
         } 
         else {
-            biggest_lex = input
+            _biggest_lex = input
                 .chars()
                 .skip(last_start)
                 .take(greedy_end - last_start)
@@ -226,7 +236,15 @@ impl LexAnalyzer{
         if greedy_match == "UNKNOWN" {
             last_start += 1;
         } else {
-            symbols.push(Symbol { id: counter, token: greedy_match.clone(), start: last_start, end: greedy_end, content: biggest_lex, token_name:String::new() });
+            symbols.push(
+                Symbol { 
+                    id: counter, 
+                    token: greedy_match.clone(), 
+                    start: last_start, 
+                    end: greedy_end, 
+                    content: _biggest_lex, 
+                    token_name:String::new() 
+            });
             tk_list.push(greedy_match);
             last_start = greedy_end;
         }

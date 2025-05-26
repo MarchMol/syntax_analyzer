@@ -16,6 +16,7 @@ pub mod lex{
 pub mod syn{
     pub mod yp_reader;
     pub mod slr_automata;
+    pub mod lalr_automata;
     pub mod first_follow;
     pub mod syn_analyzer;
 }
@@ -23,4 +24,5 @@ pub mod syn{
 pub mod view{
     pub mod render;
     pub mod print_table;
+    pub mod logging;
 }

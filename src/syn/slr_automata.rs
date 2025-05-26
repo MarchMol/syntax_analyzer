@@ -236,7 +236,7 @@ impl SLR {
             self.current_generation.clear();
             self.calculate_w_generation(sorted_vec);
         }
-        println!("");
+        // println!("");
 
         // show finish & acceptance
         // println!("Finish states: {:?}", self.finish_states);
@@ -316,7 +316,7 @@ impl SLR {
                                 }
                             }
                         } else {
-                            println!("WARNING: heads.get({:?}) returned None", tc);
+                            // println!("WARNING: heads.get({:?}) returned None", tc);
                         }
                         is_closed.push(tc.clone());
                         // println!(" ** now its {:?}",state_const);
@@ -405,14 +405,14 @@ pub fn are_equal(a: &Vec<(u8, u8)>, b: &Vec<(u8, u8)>) -> bool {
 
 
 
-fn compute_token_offset(tokens: &[String], error_index: usize) -> usize {
-    let mut offset = 0;
-    for (i, token) in tokens.iter().enumerate() {
-        if i == error_index {
-            break;
-        }
-        offset += token.len() + 1;
-    }
-    offset
-}
+// fn compute_token_offset(tokens: &[String], error_index: usize) -> usize {
+//     let mut offset = 0;
+//     for (i, token) in tokens.iter().enumerate() {
+//         if i == error_index {
+//             break;
+//         }
+//         offset += token.len() + 1;
+//     }
+//     offset
+// }
 

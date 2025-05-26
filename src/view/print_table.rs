@@ -31,7 +31,7 @@ pub fn print_symbol_table(
     }
     let mut file = File::create(path)?;
     table.print(&mut file)?;
-    println!("Table written to {:?}", path);
+    // println!("Table written to {:?}", path);
     Ok(())
 }
 
@@ -102,7 +102,7 @@ pub fn print_parse_table(
     // 4. Write table output to the file
     table.print(&mut file)?;
 
-    println!("Table written to {:?}", path);
+    // println!("Table written to {:?}", path);
 
     Ok(())
 
@@ -138,7 +138,7 @@ pub fn print_parse_steps(
     // Imprimir la tabla en el archivo
     table.print(&mut file)?;
 
-    println!("Parsing steps written to {:?}", path);
+    // println!("Parsing steps written to {:?}", path);
     Ok(())
 }
 

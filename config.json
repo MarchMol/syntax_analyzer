@@ -12,6 +12,6 @@
         "parse_steps": "./graph/parse_steps.txt",
         "symbol_table": "./graph/symbol_table.txt",
         "grammar_tree": "./graph/grammar_tree.txt",
-        "dfa": null
+        "dfa": "./graph/dfa"
     }
 }

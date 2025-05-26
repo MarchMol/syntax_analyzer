@@ -6,13 +6,14 @@ use std::{
 use super::{
     first_follow,
     slr_automata::{self, Element},
-    yp_reader::read_yalpar,
+    yp_reader::{read_yalpar, GrammarInfo},
 };
 use crate::{
     lex::lex_analyzer::Symbol,
     utility::read_config::Config,
-    view::{print_table, render},
+    view::{logging::print_log, print_table, render},
 };
+use console::Style;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
@@ -32,82 +33,136 @@ pub struct ParsingStep {
 
 impl SynAnalyzer {
     pub fn generate(filename: &str, config: &Config) -> SynAnalyzer {
+        let blue = Style::new().blue().bold();
+        let green = Style::new().green().bold();
         // 1. Obtener gramatica
-        let grammar = read_yalpar(filename);
         if config.debug.generation {
-            println!("~ S: Grammar obtained");
+            print!("\n");
+            print_log("~ S: Reading Grammar",1,7,&blue);
         }
+        let grammar = read_yalpar(filename);
 
         // 2. Obtener firsts
-        let firsts = first_follow::find_first(
+        if config.debug.generation{
+            print_log("~ S: Calculating First",2,7,&blue);
+        }
+        let first = first_follow::find_first(
             grammar.productions.clone(),
             grammar.terminals.clone(),
             grammar.non_terminals.clone(),
         );
-        if config.debug.generation {
-            println!("~ S: First calculated");
+        let flow = &config.parse_method;
+
+        if flow == "SLR"{
+            let (
+                action,
+                goto,
+                prods
+            ) = Self::slr_flow(
+                &grammar,
+                &first,
+                config
+            );
+            let sa = SynAnalyzer {
+                productions: prods,
+                action: action,
+                goto: goto,
+                ignore: grammar.ignore,
+            };
+            if config.debug.generation {
+                print_log("~ S: SLR Syntax Analizer - Successful Generation",7,7,&green);
+                println!("\n");
+            }
+            return sa
+        } else if flow == "LALR"{
+            let (
+                action,
+                goto,
+                prods
+            ) = Self::lalr_flow(
+                &grammar,
+                &first,
+                config
+            );
+            let sa = SynAnalyzer {
+                productions: prods,
+                action: action,
+                goto: goto,
+                ignore: grammar.ignore,
+            };
+            return sa
+            
+        } else{
+            panic!("Config Error!! parse_method must be 'SLR' or 'LALR'");
         }
-        // 3. Obtener Follow
+    }
+
+    pub fn slr_flow(
+        grammar: &GrammarInfo, 
+        first: &HashMap<String, HashSet<String>>, 
+        config: &Config
+        )->(
+            HashMap<(u8, String), String>,  // Action
+            HashMap<(u8, String), u8>,       // GOTO
+            HashMap<u8, Vec<Element>>       // Productions
+        ){
+        let blue = Style::new().blue().bold();
+        if config.debug.generation {
+            print_log("~ S: Calculating Follow",3,7,&blue);
+        }
         let follows = first_follow::find_follow(
             &grammar.productions,
             &grammar.terminals,
             &grammar.non_terminals,
-            &firsts,
+            &first,
             &grammar.init_symbol,
         );
         if config.debug.generation {
-            println!("~ S: Follow calculated");
+            print_log("~ S: Generating SLR",4,7,&blue);
         }
-
-        // 4. Generar SLR
         let mut slr = slr_automata::SLR::new(
             &grammar.productions,
             &grammar.terminals,
             &grammar.init_symbol,
         );
-
-        if config.debug.generation {
-            println!("~ S: SLR initialized");
-        }
-
         slr.generate();
-
-        if config.debug.generation {
-            println!("~ S: SLR calculated!");
-        }
         if let Some(render_path) = &config.vis.slr_png {
             render::render_png(&slr, &render_path);
         }
-
-        // 5. Shift and reduces
-        let (action, goto) = slr.build_parsing_table(&follows);
-
         if config.debug.generation {
-            println!("~ S: Action Table Calculated");
+            print_log("~ S: Calculating Action Table",6,7,&blue);
         }
+        let (action, goto) = slr.build_parsing_table(&follows);
         if let Some(path) = &config.vis.parse_table {
             let _rslt = print_table::print_parse_table(
                 slr.icount,
-                grammar.terminals,
-                grammar.non_terminals,
+                grammar.terminals.clone(),
+                grammar.non_terminals.clone(),
                 &action,
                 &goto,
                 &path,
             );
         }
+        (action, goto, slr.productions)
+    }
 
-        // 6. Save result
-        let sa = SynAnalyzer {
-            productions: slr.productions,
-            action: action,
-            goto: goto,
-            ignore: grammar.ignore,
-        };
 
-        if config.debug.generation {
-            println!("~ S: Generation successfull");
-        }
-        sa
+    // PARA IRVING
+    fn lalr_flow(        
+        grammar: &GrammarInfo, 
+        first: &HashMap<String, HashSet<String>>, 
+        config: &Config
+        )->(
+            HashMap<(u8, String), String>,  // Action
+            HashMap<(u8, String), u8>,       // GOTO
+            HashMap<u8, Vec<Element>>       // Productions
+        ){
+            // Con el LALR poder generar las siguientes y regresarlas
+            let action: HashMap<(u8, String), String> = HashMap::new();
+            let goto: HashMap<(u8, String), u8> = HashMap::new();
+            let productions: HashMap<u8, Vec<Element>> = HashMap::new();
+
+            (action, goto, productions)
     }
 
     pub fn parse(&self, tokens: &[Symbol]) -> (Vec<ParsingStep>, Option<(String, String)>) {
