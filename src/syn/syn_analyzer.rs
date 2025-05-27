@@ -1,3 +1,4 @@
+use crate::utility::read_config::ParseMethod;
 use std::{
     collections::{HashMap, HashSet},
     iter::Peekable,
@@ -38,13 +39,13 @@ impl SynAnalyzer {
         // 1. Obtener gramatica
         if config.debug.generation {
             print!("\n");
-            print_log("~ S: Reading Grammar",1,7,&blue);
+            print_log("~ S: Reading Grammar", 1, 7, &blue);
         }
         let grammar = read_yalpar(filename);
 
         // 2. Obtener firsts
-        if config.debug.generation{
-            print_log("~ S: Calculating First",2,7,&blue);
+        if config.debug.generation {
+            print_log("~ S: Calculating First", 2, 7, &blue);
         }
         let first = first_follow::find_first(
             grammar.productions.clone(),
@@ -53,62 +54,50 @@ impl SynAnalyzer {
         );
         let flow = &config.parse_method;
 
-        if flow == "SLR"{
-            let (
-                action,
-                goto,
-                prods
-            ) = Self::slr_flow(
-                &grammar,
-                &first,
-                config
-            );
-            let sa = SynAnalyzer {
-                productions: prods,
-                action: action,
-                goto: goto,
-                ignore: grammar.ignore,
-            };
-            if config.debug.generation {
-                print_log("~ S: SLR Syntax Analizer - Successful Generation",7,7,&green);
-                println!("\n");
+        match config.parse_method {
+            ParseMethod::SLR => {
+                let (action, goto, prods) = Self::slr_flow(&grammar, &first, config);
+                if config.debug.generation {
+                    print_log(
+                        "~ S: SLR Syntax Analyzer – Successful Generation",
+                        7,
+                        7,
+                        &Style::new().green().bold(),
+                    );
+                    println!();
+                }
+                SynAnalyzer {
+                    productions: prods,
+                    action,
+                    goto,
+                    ignore: grammar.ignore,
+                }
             }
-            return sa
-        } else if flow == "LALR"{
-            let (
-                action,
-                goto,
-                prods
-            ) = Self::lalr_flow(
-                &grammar,
-                &first,
-                config
-            );
-            let sa = SynAnalyzer {
-                productions: prods,
-                action: action,
-                goto: goto,
-                ignore: grammar.ignore,
-            };
-            return sa
-            
-        } else{
-            panic!("Config Error!! parse_method must be 'SLR' or 'LALR'");
+            ParseMethod::LALR => {
+                let (action, goto, prods) = Self::lalr_flow(&grammar, &first, config);
+                // por ahora es sólo un stub:
+                SynAnalyzer {
+                    productions: prods,
+                    action,
+                    goto,
+                    ignore: grammar.ignore,
+                }
+            }
         }
     }
 
     pub fn slr_flow(
-        grammar: &GrammarInfo, 
-        first: &HashMap<String, HashSet<String>>, 
-        config: &Config
-        )->(
-            HashMap<(u8, String), String>,  // Action
-            HashMap<(u8, String), u8>,       // GOTO
-            HashMap<u8, Vec<Element>>       // Productions
-        ){
+        grammar: &GrammarInfo,
+        first: &HashMap<String, HashSet<String>>,
+        config: &Config,
+    ) -> (
+        HashMap<(u8, String), String>, // Action
+        HashMap<(u8, String), u8>,     // GOTO
+        HashMap<u8, Vec<Element>>,     // Productions
+    ) {
         let blue = Style::new().blue().bold();
         if config.debug.generation {
-            print_log("~ S: Calculating Follow",3,7,&blue);
+            print_log("~ S: Calculating Follow", 3, 7, &blue);
         }
         let follows = first_follow::find_follow(
             &grammar.productions,
@@ -118,7 +107,7 @@ impl SynAnalyzer {
             &grammar.init_symbol,
         );
         if config.debug.generation {
-            print_log("~ S: Generating SLR",4,7,&blue);
+            print_log("~ S: Generating SLR", 4, 7, &blue);
         }
         let mut slr = slr_automata::SLR::new(
             &grammar.productions,
@@ -130,7 +119,7 @@ impl SynAnalyzer {
             render::render_png(&slr, &render_path);
         }
         if config.debug.generation {
-            print_log("~ S: Calculating Action Table",6,7,&blue);
+            print_log("~ S: Calculating Action Table", 6, 7, &blue);
         }
         let (action, goto) = slr.build_parsing_table(&follows);
         if let Some(path) = &config.vis.parse_table {
@@ -146,23 +135,22 @@ impl SynAnalyzer {
         (action, goto, slr.productions)
     }
 
-
     // PARA IRVING
-    fn lalr_flow(        
-        grammar: &GrammarInfo, 
-        first: &HashMap<String, HashSet<String>>, 
-        config: &Config
-        )->(
-            HashMap<(u8, String), String>,  // Action
-            HashMap<(u8, String), u8>,       // GOTO
-            HashMap<u8, Vec<Element>>       // Productions
-        ){
-            // Con el LALR poder generar las siguientes y regresarlas
-            let action: HashMap<(u8, String), String> = HashMap::new();
-            let goto: HashMap<(u8, String), u8> = HashMap::new();
-            let productions: HashMap<u8, Vec<Element>> = HashMap::new();
+    fn lalr_flow(
+        grammar: &GrammarInfo,
+        first: &HashMap<String, HashSet<String>>,
+        config: &Config,
+    ) -> (
+        HashMap<(u8, String), String>, // Action
+        HashMap<(u8, String), u8>,     // GOTO
+        HashMap<u8, Vec<Element>>,     // Productions
+    ) {
+        // Con el LALR poder generar las siguientes y regresarlas
+        let action: HashMap<(u8, String), String> = HashMap::new();
+        let goto: HashMap<(u8, String), u8> = HashMap::new();
+        let productions: HashMap<u8, Vec<Element>> = HashMap::new();
 
-            (action, goto, productions)
+        (action, goto, productions)
     }
 
     pub fn parse(&self, tokens: &[Symbol]) -> (Vec<ParsingStep>, Option<(String, String)>) {
