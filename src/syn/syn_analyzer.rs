@@ -5,7 +5,7 @@ use std::{
 };
 
 use super::{
-    first_follow,
+    first_follow, lalr_automata,
     slr_automata::{self, Element},
     yp_reader::{read_yalpar, GrammarInfo},
 };
@@ -141,16 +141,64 @@ impl SynAnalyzer {
         first: &HashMap<String, HashSet<String>>,
         config: &Config,
     ) -> (
-        HashMap<(u8, String), String>, // Action
-        HashMap<(u8, String), u8>,     // GOTO
+        HashMap<(u8, String), String>, // Action table
+        HashMap<(u8, String), u8>,     // GOTO table
         HashMap<u8, Vec<Element>>,     // Productions
     ) {
-        // Con el LALR poder generar las siguientes y regresarlas
-        let action: HashMap<(u8, String), String> = HashMap::new();
-        let goto: HashMap<(u8, String), u8> = HashMap::new();
-        let productions: HashMap<u8, Vec<Element>> = HashMap::new();
+        let blue = Style::new().blue().bold();
 
-        (action, goto, productions)
+        // 1) Calculamos FOLLOW (igual que en SLR)
+        if config.debug.generation {
+            print_log("~ S: Calculating Follow for LALR", 3, 7, &blue);
+        }
+        let follows = first_follow::find_follow(
+            &grammar.productions,
+            &grammar.terminals,
+            &grammar.non_terminals,
+            &first,
+            &grammar.init_symbol,
+        );
+
+        // 2) Generamos un SLR “base” para extraer el map de productions
+        if config.debug.generation {
+            print_log("~ S: Generating base SLR automaton for LALR", 4, 7, &blue);
+        }
+        let mut base_slr = slr_automata::SLR::new(
+            &grammar.productions,
+            &grammar.terminals,
+            &grammar.init_symbol,
+        );
+        base_slr.generate();
+
+        // 3) Inicializamos el autómata LALR a partir de esas mismas productions
+        if config.debug.generation {
+            print_log("~ S: Initializing LALR automaton", 5, 7, &blue);
+        }
+        let mut lalr = lalr_automata::LALR::new(
+            &base_slr.productions, // <–– Aquí tomamos el HashMap<u8,Vec<Element>>
+            &grammar.terminals,
+            &grammar.init_symbol,
+        );
+        lalr.generate();
+
+        // 4) Construimos las tablas ACTION/GOTO
+        let (action, goto) = lalr.build_parsing_table(&follows);
+
+        // 5) (Opcional) imprimir la tabla de parseo
+        if let Some(path) = &config.vis.parse_table {
+            // como todavía no tenemos lalr.states.len(), reutilizamos base_slr.icount
+            let _ = print_table::print_parse_table(
+                base_slr.icount,
+                grammar.terminals.clone(),
+                grammar.non_terminals.clone(),
+                &action,
+                &goto,
+                path,
+            );
+        }
+
+        // Devolvemos action, goto y el map de productions del LALR
+        (action, goto, lalr.productions)
     }
 
     pub fn parse(&self, tokens: &[Symbol]) -> (Vec<ParsingStep>, Option<(String, String)>) {
