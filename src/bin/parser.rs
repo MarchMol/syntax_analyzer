@@ -8,22 +8,22 @@ const SYN_RON_PATH: &str = "./src/bin/syn_analyzer.ron";
 
 fn actions(id: i32)-> &'static str{
     match id{
-		14=>{return "RPAREN";}
-		15=>{return "SEMICOLON";}
 		12=>{return "RBRACKET";}
-		17=>{return "WS";}
-		4=>{return "RETURN";}
-		9=>{return "ASSIGN";}
 		10=>{return "EQUAL";}
-		13=>{return "LPAREN";}
-		3=>{return "SCINOT";}
-		0=>{return "INT";}
 		5=>{return "IF";}
-		2=>{return "FLOAT";}
+		14=>{return "RPAREN";}
 		11=>{return "LBRACKET";}
-		1=>{return "STRING";}
-		6=>{return "WHILE";}
+		15=>{return "SEMICOLON";}
+		2=>{return "FLOAT";}
+		9=>{return "ASSIGN";}
 		16=>{return "ID";}
+		4=>{return "RETURN";}
+		13=>{return "LPAREN";}
+		17=>{return "WS";}
+		3=>{return "SCINOT";}
+		6=>{return "WHILE";}
+		0=>{return "INT";}
+		1=>{return "STRING";}
 		_=> {return "";}
     }
 }

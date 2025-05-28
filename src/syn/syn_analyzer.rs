@@ -179,16 +179,18 @@ impl SynAnalyzer {
             &grammar.terminals,
             &grammar.init_symbol,
         );
-        lalr.generate();
+        lalr.generate(&first);
+
+        // Nº de estados LALR (hoy será 1; crecerá cuando completes generate)
+        let state_count = lalr.states.len() as u8;
 
         // 4) Construimos las tablas ACTION/GOTO
         let (action, goto) = lalr.build_parsing_table(&follows);
 
         // 5) (Opcional) imprimir la tabla de parseo
         if let Some(path) = &config.vis.parse_table {
-            // como todavía no tenemos lalr.states.len(), reutilizamos base_slr.icount
             let _ = print_table::print_parse_table(
-                base_slr.icount,
+                state_count, // ← aquí ya usamos LALR
                 grammar.terminals.clone(),
                 grammar.non_terminals.clone(),
                 &action,

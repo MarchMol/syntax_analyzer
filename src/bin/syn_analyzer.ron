@@ -1,35 +1,8 @@
 (
     productions: {
-        0: [
-            NonTerminal("S\'"),
-            NonTerminal("S"),
-        ],
-        15: [
-            NonTerminal("T"),
-            NonTerminal("X"),
-        ],
-        8: [
-            NonTerminal("F"),
-            Terminal("LBRACKET"),
-            NonTerminal("F"),
-            Terminal("RBRACKET"),
-        ],
-        4: [
-            NonTerminal("C"),
-            Terminal("IF"),
-        ],
-        10: [
-            NonTerminal("L"),
-            Terminal("INT"),
-        ],
         11: [
             NonTerminal("L"),
             Terminal("FLOAT"),
-        ],
-        3: [
-            NonTerminal("B"),
-            NonTerminal("C"),
-            NonTerminal("E"),
         ],
         9: [
             NonTerminal("F"),
@@ -37,12 +10,32 @@
             NonTerminal("L"),
             Terminal("SEMICOLON"),
         ],
-        12: [
-            NonTerminal("L"),
-            Terminal("SCINOT"),
+        5: [
+            NonTerminal("C"),
+            Terminal("WHILE"),
         ],
-        14: [
-            NonTerminal("S"),
+        4: [
+            NonTerminal("C"),
+            Terminal("IF"),
+        ],
+        7: [
+            NonTerminal("E"),
+            Terminal("ID"),
+            Terminal("EQUAL"),
+            NonTerminal("L"),
+        ],
+        13: [
+            NonTerminal("L"),
+            Terminal("STRING"),
+        ],
+        3: [
+            NonTerminal("B"),
+            NonTerminal("C"),
+            NonTerminal("E"),
+        ],
+        16: [
+            NonTerminal("T"),
+            NonTerminal("X"),
             NonTerminal("T"),
         ],
         1: [
@@ -51,30 +44,27 @@
             Terminal("ASSIGN"),
             NonTerminal("L"),
         ],
-        7: [
-            NonTerminal("E"),
-            Terminal("ID"),
-            Terminal("EQUAL"),
-            NonTerminal("L"),
+        14: [
+            NonTerminal("S"),
+            NonTerminal("T"),
+        ],
+        2: [
+            NonTerminal("B"),
+            NonTerminal("B"),
+            NonTerminal("F"),
         ],
         17: [
             NonTerminal("X"),
             NonTerminal("A"),
             Terminal("SEMICOLON"),
         ],
-        16: [
-            NonTerminal("T"),
-            NonTerminal("X"),
-            NonTerminal("T"),
-        ],
         18: [
             NonTerminal("X"),
             NonTerminal("B"),
         ],
-        2: [
-            NonTerminal("B"),
-            NonTerminal("B"),
-            NonTerminal("F"),
+        12: [
+            NonTerminal("L"),
+            Terminal("SCINOT"),
         ],
         6: [
             NonTerminal("E"),
@@ -82,13 +72,23 @@
             NonTerminal("E"),
             Terminal("RPAREN"),
         ],
-        5: [
-            NonTerminal("C"),
-            Terminal("WHILE"),
-        ],
-        13: [
+        10: [
             NonTerminal("L"),
-            Terminal("STRING"),
+            Terminal("INT"),
+        ],
+        8: [
+            NonTerminal("F"),
+            Terminal("LBRACKET"),
+            NonTerminal("F"),
+            Terminal("RBRACKET"),
+        ],
+        15: [
+            NonTerminal("T"),
+            NonTerminal("X"),
+        ],
+        0: [
+            NonTerminal("S\'"),
+            NonTerminal("S"),
         ],
     },
     action: {},
