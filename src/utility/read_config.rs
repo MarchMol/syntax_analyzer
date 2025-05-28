@@ -33,6 +33,7 @@ pub struct VisConfig {
     pub symbol_table: Option<String>,
     pub grammar_tree: Option<String>,
     pub dfa: Option<String>,
+    pub lalr_png: Option<String>,
 }
 
 impl Config {

@@ -10,6 +10,7 @@
     
     "vis": {
         "slr_png": "./graph/slr",
+        "lalr_png": "./graph/lalr",
         "parse_table": "./graph/parse_table.txt",
         "parse_steps": "./graph/parse_steps.txt",
         "symbol_table": "./graph/symbol_table.txt",
