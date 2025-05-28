@@ -118,8 +118,81 @@ pub fn render_png(slr: &SLR, filename: &str) {
 }
 
 // DFA
-pub fn render_lalr(_lalr: &LALR, _filename: &str) {
-    unimplemented!("render_lalr aún no implementado");
+pub fn render_lalr(lalr: &LALR, filename: &str) {
+    // 1. Rutas de salida
+    let dot_file = format!("{}.dot", filename);
+    let png_file = format!("{}.png", filename);
+
+    // 2. Detectar estados de finish y acceptance
+    let mut finish_states: HashSet<usize> = HashSet::new();
+    let mut acceptance_states: HashSet<usize> = HashSet::new();
+    for (idx, state) in lalr.states.iter().enumerate() {
+        for item in &state.items {
+            let prod_len = lalr.productions[&item.prod_id].len();
+            if item.dot + 1 == prod_len {
+                if item.prod_id == 0 {
+                    acceptance_states.insert(idx);
+                } else {
+                    finish_states.insert(idx);
+                }
+            }
+        }
+    }
+
+    // 3. Extraer el kernel (prod_id·dot) de cada estado
+    let mut kernels: BTreeMap<usize, String> = BTreeMap::new();
+    for (idx, state) in lalr.states.iter().enumerate() {
+        let mut labels: Vec<String> = state
+            .items
+            .iter()
+            .map(|item| format!("{}·{}", item.prod_id, item.dot))
+            .collect();
+        labels.sort();
+        kernels.insert(idx, labels.join("\n"));
+    }
+
+    // 4. Construir el grafo
+    let mut graph: DiGraph<String, String> = DiGraph::new();
+    let mut node_map: BTreeMap<usize, NodeIndex> = BTreeMap::new();
+    // 4.1. Añadir nodos
+    for (idx, label) in &kernels {
+        let ni = graph.add_node(label.clone());
+        node_map.insert(*idx, ni);
+    }
+    // 4.2. Añadir aristas según state.transitions
+    for (idx, state) in lalr.states.iter().enumerate() {
+        let from_idx = node_map[&idx];
+        for (sym, &to) in &state.transitions {
+            let to_idx = node_map[&(to as usize)];
+            graph.add_edge(from_idx, to_idx, sym.clone());
+        }
+    }
+
+    // 5. Definir atributos de nodo (color según finish/acceptance)
+    let node_attr = |_: &DiGraph<String, String>, (ni, _): (NodeIndex, &String)| {
+        let idx = ni.index();
+        if acceptance_states.contains(&idx) {
+            "shape=box, color=green, penwidth=5".to_string()
+        } else if finish_states.contains(&idx) {
+            "shape=box, color=purple, penwidth=5".to_string()
+        } else {
+            "shape=box".to_string()
+        }
+    };
+
+    // 6. Escribir .dot y generar .png
+    let dot = Dot::with_attr_getters(&graph, &[], &|_, _| String::new(), &node_attr);
+    fs::write(&dot_file, dot.to_string()).expect("No pude escribir el .dot de LALR");
+    let output = Command::new("dot")
+        .arg("-Tpng")
+        .arg(&dot_file)
+        .arg("-o")
+        .arg(&png_file)
+        .arg("-Grandom_seed=42")
+        .output();
+    if let Err(err) = output {
+        eprintln!("Error ejecutando dot para LALR: {}", err);
+    }
 }
 
 pub fn get_all_states(ginfo: &HashMap<char, HashMap<String, char>>) -> Vec<String> {
