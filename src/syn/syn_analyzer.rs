@@ -14,6 +14,7 @@ use crate::{
     utility::read_config::Config,
     view::{logging::print_log, print_table, render},
 };
+
 use console::Style;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -190,6 +191,10 @@ impl SynAnalyzer {
             &grammar.init_symbol,
         );
         lalr.generate(&first);
+
+        if let Some(render_path) = &config.vis.lalr_png {
+            render::render_lalr(&lalr, render_path);
+        }
 
         // Nº de estados LALR (hoy será 1; crecerá cuando completes generate)
         let state_count = lalr.states.len() as u8;
