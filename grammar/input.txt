@@ -1,6 +1,7 @@
-hola_23 = 5.32;
-// Commentario 
-juanpe = 3.3E-6;
-while ( juanpe == 3.0){
-    return 3;
+hola_23 == 5.32;
+myvar = "HelloWorld";
+what = 3;
+// Comentario 1
+if (juanpe == -2){
+    return 2;
 }

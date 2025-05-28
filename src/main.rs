@@ -25,11 +25,6 @@ fn main(){
 
     // 3. Generate
     let la_raw = LexAnalyzer::generate(&lex_path, &config);
-
-
-
-
-    
     let la_serialized = to_string_pretty(&la_raw, PrettyConfig::default()).unwrap();
     let mut l_file = File::create(LEX_RON_PATH).unwrap();
     l_file.write_all(la_serialized.as_bytes()).unwrap();
@@ -54,7 +49,8 @@ fn write_to_main(
         format_headers+="\n";
     }
     format_headers+="\n";
-    let constants = "const LEX_RON_PATH: &str = \"./src/bin/lex_analyzer.ron\";
+    let constants = 
+    "const LEX_RON_PATH: &str = \"./src/bin/lex_analyzer.ron\";
 const SYN_RON_PATH: &str = \"./src/bin/syn_analyzer.ron\";\n\n";
 
     let mut format_actions = String::new();
@@ -71,10 +67,10 @@ const SYN_RON_PATH: &str = \"./src/bin/syn_analyzer.ron\";\n\n";
     }
 }\n\n";
     let main_method = 
-    "fn main()-> std::io::Result<()> {
+    "fn main() -> std::io::Result<()> {
     // 1. Fetch Arguments
     let args: Vec<String> = env::args().collect();
-    if args.len()!=2{
+    if args.len() != 2 {
         panic!(\"Arguments must be 'cargo run --bin parser -- ./path/to/input.txt'\")
     }
     let input_path = &args[1];
@@ -91,51 +87,48 @@ const SYN_RON_PATH: &str = \"./src/bin/syn_analyzer.ron\";\n\n";
     let lex: LexAnalyzer = from_reader(l_reader).unwrap();
 
     // Lexic Analysis
-    let raw_symbol_table = lex.simulate(contents);
-
     // Action Implementation
-    let mut symbol_table: Vec<Symbol> = Vec::new();
-    for s in &raw_symbol_table{
-        let tem = actions(s.token.parse::<i32>().unwrap());
-        if !tem.is_empty(){
-            symbol_table.push(
-                Symbol { 
-                    id: s.id, 
-                    token: s.token.clone(), 
-                    start: s.start, 
+    if let Some(raw) = lex.simulate(contents) {
+        let mut symbol_table: Vec<Symbol> = Vec::new();
+        for s in &raw {
+            let tem = actions(s.token.parse::<i32>().unwrap());
+            if !tem.is_empty() {
+                symbol_table.push(Symbol {
+                    id: s.id,
+                    token: s.token.clone(),
+                    start: s.start,
                     end: s.end,
-                    content: s.content.clone(), 
+                    content: s.content.clone(),
                     token_name: tem.to_string(),
-            });
+                    line: s.line,
+                });
+            }
         }
+
+        if let Some(path) = config.vis.symbol_table {
+            let _ = print_symbol_table(&symbol_table, &path);
+        }
+
+        let s_file = File::open(SYN_RON_PATH).unwrap();
+        let s_reader = BufReader::new(s_file);
+        let syn: SynAnalyzer = from_reader(s_reader).unwrap();
+
+        symbol_table.retain(|x| !syn.ignore.contains(&x.token_name));
+
+        let (steps, error_msg) = syn.parse(&symbol_table);
+
+        if let Some(path) = config.vis.parse_steps {
+            let _steps_rslt = print_table::print_parse_steps(&steps, &path);
+        }
+
+        if let Some((visual_msg, detailed_msg)) = error_msg {
+            println!(\"{}\", visual_msg);
+            println!(\"{}\", detailed_msg);
+        };
     }
-    if let Some(path) = config.vis.symbol_table{
-         let _ = print_symbol_table(&symbol_table,&path);
-    }
-    
-    let s_file = File::open(SYN_RON_PATH).unwrap();
-    let s_reader = BufReader::new(s_file);
-    let syn: SynAnalyzer = from_reader(s_reader).unwrap();
-
-    symbol_table.retain(|x| !syn.ignore.contains(&x.token_name));
-
-    let (steps, error_msg) = syn.parse(
-        &symbol_table
-    );
-
-    if let Some(path) = config.vis.parse_steps{
-        let _steps_rslt = print_table::print_parse_steps(
-            &steps,
-            &path
-        );
-    }
-
-    if let Some((visual_msg, detailed_msg)) = error_msg {
-        println!(\"{}\", visual_msg);
-        println!(\"{}\", detailed_msg);
-    };
     Ok(())
-}";
+}
+";
 
 
     let parsing_code = format_headers+constants+&format_actions+main_method;

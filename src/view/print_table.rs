@@ -11,7 +11,7 @@ pub fn print_symbol_table(
     filename: &str
 )->std::io::Result<()>{
     let mut table = Table::new();
-    let header = row!["Lexem Id", "Content", "Token Id", "Token Action", "Start", "End"];
+    let header = row!["Lexem Id", "Content", "Token Id", "Token Action", "line","Start", "End"];
     table.add_row(header);
     for s in symbols{
         let row = row![
@@ -19,6 +19,7 @@ pub fn print_symbol_table(
             s.content,
             s.token,
             s.token_name,
+            s.line,
             s.start,
             s.end
         ];

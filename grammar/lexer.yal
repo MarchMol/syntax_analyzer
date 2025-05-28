@@ -1,9 +1,14 @@
 {
-use std::{env, fs::File, io::BufReader};
 use ron::de::from_reader;
-use syntax_analyzer::{lex::lex_analyzer::{LexAnalyzer, Symbol}, syn::syn_analyzer::SynAnalyzer, utility::read_config::fetch_config, view::print_table::{self, print_symbol_table}};
 use std::fs;
+use std::{env, fs::File, io::BufReader};
+use syntax_analyzer::{
+    lex::lex_analyzer::{LexAnalyzer, Symbol},
+    syn::syn_analyzer::SynAnalyzer,
+    utility::read_config::fetch_config,
+    view::print_table::{self, print_symbol_table},};
 }
+
 (* 1. Var definition: *)
     (* Numbers *)
 
@@ -13,7 +18,6 @@ let float = "-"?(digit"."(digit*))
 
 (* Words *)
 let letter = ([a-z]|[A-Z])
-
 (* Extra *)
 let inlne_ws = (" "|"\t"|"\s")+
 let break_ws = "\n"+
@@ -27,13 +31,16 @@ rule gettoken =
     | "if"                            { return "IF"; }
     | "while"                            { return "WHILE"; }
     | "ignoreMe"                      { }
-    | "\/\/"(letter|inlne_ws)*        { }
+    | "\/\/"(letter|inlne_ws|digit)*        { }
     | "="                             { return "ASSIGN"; }
     | "=="                            { return "EQUAL"; }
     | "\{"                             { return "LBRACKET"; }
     | "\}"                             { return "RBRACKET"; }
     | "\("                             { return "LPAREN"; }
     | "\)"                             { return "RPAREN"; }
+    | "\+"                              { return "PLUS"; }
+    | "\-"                              { return "MINUS"; }
+    | "\+\+"                              { return "INCREMENT"; }
     | ";"                             { return "SEMICOLON"; }
     | letter(letter|digit|"_")*       { return "ID"; }
     | (inlne_ws|break_ws)              { return "WS"; }

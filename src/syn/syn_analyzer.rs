@@ -35,6 +35,7 @@ impl SynAnalyzer {
     pub fn generate(filename: &str, config: &Config) -> SynAnalyzer {
         let blue = Style::new().blue().bold();
         let green = Style::new().green().bold();
+
         // 1. Obtener gramatica
         if config.debug.generation {
             print!("\n");
@@ -51,9 +52,11 @@ impl SynAnalyzer {
             grammar.terminals.clone(),
             grammar.non_terminals.clone(),
         );
-        let flow = &config.parse_method;
 
+        // 3. Identificar si se quiere SLR o LALR
+        let flow = &config.parse_method;
         if flow == "SLR"{
+            // 4. Obtener informacion relevante con SLR flow
             let (
                 action,
                 goto,
@@ -73,8 +76,10 @@ impl SynAnalyzer {
                 print_log("~ S: SLR Syntax Analizer - Successful Generation",7,7,&green);
                 println!("\n");
             }
+            // 5. Regresar estructura de datos
             return sa
         } else if flow == "LALR"{
+            //4 Obtener informacion relevante con LALR flow
             let (
                 action,
                 goto,
@@ -90,6 +95,7 @@ impl SynAnalyzer {
                 goto: goto,
                 ignore: grammar.ignore,
             };
+            // 6. Regresar estructura de datos
             return sa
             
         } else{
@@ -110,6 +116,8 @@ impl SynAnalyzer {
         if config.debug.generation {
             print_log("~ S: Calculating Follow",3,7,&blue);
         }
+
+        // 1. Calcular follow
         let follows = first_follow::find_follow(
             &grammar.productions,
             &grammar.terminals,
@@ -120,6 +128,8 @@ impl SynAnalyzer {
         if config.debug.generation {
             print_log("~ S: Generating SLR",4,7,&blue);
         }
+
+        // 2. Generar SLR
         let mut slr = slr_automata::SLR::new(
             &grammar.productions,
             &grammar.terminals,
@@ -129,6 +139,8 @@ impl SynAnalyzer {
         if let Some(render_path) = &config.vis.slr_png {
             render::render_png(&slr, &render_path);
         }
+
+        // 3. Calcular Shift, Reduces y Gotos
         if config.debug.generation {
             print_log("~ S: Calculating Action Table",6,7,&blue);
         }
@@ -143,6 +155,7 @@ impl SynAnalyzer {
                 &path,
             );
         }
+        // 4. Regresar informacion relevante
         (action, goto, slr.productions)
     }
 
