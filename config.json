@@ -1,5 +1,7 @@
+
+
 {
-    "parse_method": "SLR",
+    "parse_method": "LALR",
 
     "debug": {
         "generation": true,
