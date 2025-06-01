@@ -118,6 +118,7 @@ pub fn render_png(slr: &SLR, filename: &str) {
 }
 
 // DFA
+
 pub fn render_lalr(lalr: &LALR, filename: &str) {
     // 1. Rutas de salida
     let dot_file = format!("{}.dot", filename);
@@ -139,27 +140,53 @@ pub fn render_lalr(lalr: &LALR, filename: &str) {
         }
     }
 
-    // 3. Extraer el kernel (prod_id·dot) de cada estado
+    // 3. Construir etiquetas “al estilo SLR” para cada estado:
     let mut kernels: BTreeMap<usize, String> = BTreeMap::new();
     for (idx, state) in lalr.states.iter().enumerate() {
-        let mut labels: Vec<String> = state
-            .items
-            .iter()
-            .map(|item| format!("{}·{}", item.prod_id, item.dot))
-            .collect();
-        labels.sort();
-        kernels.insert(idx, labels.join("\n"));
+        let mut lines: Vec<String> = Vec::new();
+
+        lines.push(format!("I{}", idx));
+
+        for item in &state.items {
+            if let Some(prod_rhs) = lalr.productions.get(&item.prod_id) {
+                let mut line = String::new();
+
+                for (i, elem) in prod_rhs.iter().enumerate() {
+                    match elem {
+                        Element::Terminal(s) => {
+                            line.push('"');
+                            line.push_str(s);
+                            line.push('"');
+                            line.push(' ');
+                        }
+                        Element::NonTerminal(s) => {
+                            line.push_str(s);
+                            line.push(' ');
+                        }
+                    }
+                    if i == item.dot {
+                        line.push_str(". ");
+                    }
+                }
+
+                let full = format!("~ {}", line.trim_end());
+                lines.push(full);
+            }
+        }
+
+        lines.sort();
+        kernels.insert(idx, lines.join("\n"));
     }
 
     // 4. Construir el grafo
     let mut graph: DiGraph<String, String> = DiGraph::new();
     let mut node_map: BTreeMap<usize, NodeIndex> = BTreeMap::new();
-    // 4.1. Añadir nodos
+
     for (idx, label) in &kernels {
         let ni = graph.add_node(label.clone());
         node_map.insert(*idx, ni);
     }
-    // 4.2. Añadir aristas según state.transitions
+
     for (idx, state) in lalr.states.iter().enumerate() {
         let from_idx = node_map[&idx];
         for (sym, &to) in &state.transitions {
@@ -168,7 +195,7 @@ pub fn render_lalr(lalr: &LALR, filename: &str) {
         }
     }
 
-    // 5. Definir atributos de nodo (color según finish/acceptance)
+    // 5. Definir atributos de nodo
     let node_attr = |_: &DiGraph<String, String>, (ni, _): (NodeIndex, &String)| {
         let idx = ni.index();
         if acceptance_states.contains(&idx) {
