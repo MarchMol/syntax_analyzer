@@ -298,32 +298,52 @@ impl LALR {
     /* BUILD PARSING TABLE                                     */
     /*--------------------------------------------------------*/
     pub fn build_parsing_table(
-        &self,
-        follows: &HashMap<String, HashSet<String>>,
+        &self
     ) -> (HashMap<(u8, String), String>, HashMap<(u8, String), u8>) {
         let mut action = HashMap::new();
         let mut goto = HashMap::new();
 
         for st in &self.states {
             for it in &st.items {
+                
                 let rhs = &self.productions[&it.prod_id];
+                
                 // ---------------------------------
                 // Shift
                 if it.dot < rhs.len() - 1 {
                     let sym = &rhs[it.dot + 1];
                     if let Element::Terminal(t) = sym {
                         if let Some(&tgt) = st.transitions.get(t) {
-                            action.insert((st.id, t.clone()), format!("s{}", tgt));
+                            let ac: Option<&String> =  action.get(&(st.id, t.clone()));
+                            match ac {
+                                Some(s)=>{
+                                    panic!("LALR Error: Ambiguity in shifts\n state:{} token:{} already present with {}",st.id, t, s)
+                                }
+                                None=>{
+                                    action.insert((st.id, t.clone()), format!("s{}", tgt));
+                                }
+                            }
+                            
                         }
                     } else if let Element::NonTerminal(nt) = sym {
                         if let Some(&tgt) = st.transitions.get(nt) {
-                            goto.insert((st.id, nt.clone()), tgt);
+                            let gt=  action.get(&(st.id, nt.clone()));
+                            match gt {
+                                Some(s)=>{
+                                    panic!("LALR Error: Ambiguity in GOTO\n state:{} token:{} already present with {}",st.id, nt, s)
+                                }
+                                None=>{
+                                    goto.insert((st.id, nt.clone()), tgt);
+                                }
+                            }
+                            
                         }
                     }
                 }
                 // ---------------------------------
                 // Reduce  / Accept
                 else {
+                    
                     let lhs = if let Element::NonTerminal(lhs) = &rhs[0] {
                         lhs.clone()
                     } else {
@@ -333,7 +353,16 @@ impl LALR {
                         action.insert((st.id, "$".to_string()), "acc".to_string());
                     } else {
                         for la in &it.lookahead {
-                            action.insert((st.id, la.clone()), format!("r{}", it.prod_id));
+                            let rd=  action.get(&(st.id, la.clone()));
+                            match rd {
+                                Some(s)=>{
+                                    panic!("LALR Error: Ambiguity in GOTO\n state:{} token:{} already present with {}",st.id, la, s)
+                                }
+                                None=>{
+                                    action.insert((st.id, la.clone()), format!("r{}", it.prod_id));
+                                }
+                            }
+                            
                         }
                         // GOTO entries for <lhs> handled during Shift part
                     }

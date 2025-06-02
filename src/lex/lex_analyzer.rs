@@ -231,7 +231,7 @@ impl LexAnalyzer {
                 }
                 // println!("({}-{}) Lex: \"{}\", match: {:?}\n", last_start, greedy_end,lexem, greedy_match);
             }
-            if greedy_end == 0 {
+            if greedy_end == 0 && last_start>0{
                 if !is_continuous {
                     is_continuous = true;
                     tem_error.0 = last_start;
@@ -246,7 +246,6 @@ impl LexAnalyzer {
             //     // panic!("I dont kno what error this is but it comes here: {}", lexem);
             //     // unknown.push(last_start);
             //     println!("{}, {}",last_start, greedy_end);
-            //     last_start+=1;
             // }
             else {
                 if is_continuous {

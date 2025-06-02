@@ -80,6 +80,16 @@ impl SynAnalyzer {
             ParseMethod::LALR => {
                 let (action, goto, prods) = Self::lalr_flow(&grammar, &first, config);
                 // por ahora es sólo un stub:
+                    if config.debug.generation {
+                    print_log(
+                        "~ S: LALR Syntax Analyzer – Successful Generation",
+                        7,
+                        7,
+                        &Style::new().green().bold(),
+                    );
+                    println!();
+                }
+                
                 SynAnalyzer {
                     productions: prods,
                     action,
@@ -159,16 +169,9 @@ impl SynAnalyzer {
         let blue = Style::new().blue().bold();
 
         // 1) Calculamos FOLLOW (igual que en SLR)
-        if config.debug.generation {
-            print_log("~ S: Calculating Follow for LALR", 3, 7, &blue);
-        }
-        let follows = first_follow::find_follow(
-            &grammar.productions,
-            &grammar.terminals,
-            &grammar.non_terminals,
-            &first,
-            &grammar.init_symbol,
-        );
+        // if config.debug.generation {
+        //     print_log("~ S: Calculating Follow for LALR", 3, 7, &blue);
+        // }
 
         // 2) Generamos un SLR “base” para extraer el map de productions
         if config.debug.generation {
@@ -179,8 +182,6 @@ impl SynAnalyzer {
             &grammar.terminals,
             &grammar.init_symbol,
         );
-        base_slr.generate();
-
         // 3) Inicializamos el autómata LALR a partir de esas mismas productions
         if config.debug.generation {
             print_log("~ S: Initializing LALR automaton", 5, 7, &blue);
@@ -191,7 +192,6 @@ impl SynAnalyzer {
             &grammar.init_symbol,
         );
         lalr.generate(&first);
-
         if let Some(render_path) = &config.vis.lalr_png {
             render::render_lalr(&lalr, render_path);
         }
@@ -200,7 +200,7 @@ impl SynAnalyzer {
         let state_count = lalr.states.len() as u8;
 
         // 4) Construimos las tablas ACTION/GOTO
-        let (action, goto) = lalr.build_parsing_table(&follows);
+        let (action, goto) = lalr.build_parsing_table();
 
         // 5) (Opcional) imprimir la tabla de parseo
         if let Some(path) = &config.vis.parse_table {
@@ -272,6 +272,7 @@ impl SynAnalyzer {
                     break;
                 }
                 Some(s) if s.starts_with('s') => {
+                    println!("{}[{}]= {}",state,lookahead,s);
                     let next_st: u8 = s[1..].parse().unwrap();
                     stack.push(next_st);
                     symbols.push(lookahead.clone());
@@ -284,6 +285,7 @@ impl SynAnalyzer {
                     });
                 }
                 Some(r) if r.starts_with('r') => {
+                    println!("{}[{}]= {}",state,lookahead,r);
                     let prod_id: u8 = r[1..].parse().unwrap();
                     let rhs_len = self.productions[&(prod_id)].len() - 1;
                     for _ in 0..rhs_len {
