@@ -164,12 +164,29 @@ pub fn render_lalr(lalr: &LALR, filename: &str) {
                             line.push(' ');
                         }
                     }
+                    if i == 0{
+                         line.push_str("->");
+                    }
                     if i == item.dot {
                         line.push_str(". ");
                     }
                 }
 
-                let full = format!("~ {}", line.trim_end());
+                
+                
+                let mut tem_line = String::new();
+                let copy = item.lookahead.clone();
+                let mut vec: Vec<String> = copy.into_iter().collect();
+                vec.sort();
+                for (i,la) in vec.iter().enumerate(){
+                    if i == 0{
+                        tem_line+=&format!("{}",la);
+                    } else{
+                        tem_line+=&format!(", {}",la);
+                    }
+                    
+                }
+                let full = format!("~ {} | {{{}}}", line.trim_end(), tem_line);
                 lines.push(full);
             }
         }
